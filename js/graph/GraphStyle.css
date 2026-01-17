@@ -1,6 +1,7 @@
 .italic {
     font-style: italic;
 }
+
 #controls-panel {
     position: absolute;
     top: 15px;
@@ -43,7 +44,7 @@
 #graph {
     width: 100%;
     height: 100%;
-    background-color: #f9f9f9;
+    background-color: var(--graph-bg);
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -56,7 +57,7 @@
 
 /* グリッド線のスタイル - x軸とy軸用 */
 .grid-line {
-    stroke: #000;
+    stroke: var(--axis-color);
     stroke-width: 2;
     user-select: none;
     pointer-events: none;
@@ -64,7 +65,7 @@
 
 /* 副目盛りのスタイル - 主要なグリッド線用 */
 .sub-grid-line {
-    stroke: #a6a6a6;
+    stroke: var(--grid-sub-color);
     stroke-width: 1;
     user-select: none;
     pointer-events: none;
@@ -72,7 +73,7 @@
 
 /* 微細目盛りのスタイル */
 .micro-grid-line {
-    stroke: #ccc;
+    stroke: var(--grid-micro-color);
     stroke-width: 0.3;
     user-select: none;
     pointer-events: none;
@@ -80,20 +81,27 @@
 
 /* 軸のスタイル */
 .axis {
-    stroke: #000;
+    stroke: var(--axis-color);
     stroke-width: 2;
 }
 
 /* 軸メモリのスタイル */
 .axis-tick {
-    stroke: #000;
+    stroke: var(--axis-color);
     stroke-width: 1.5;
     user-select: none;
     pointer-events: none;
 }
 
+/* 軸矢印のスタイル */
+.axis-arrow {
+    fill: var(--axis-color);
+    stroke: none;
+}
+
 /* 軸ラベルのスタイル */
 .axis-label {
+    fill: var(--axis-color);
     font-family: Arial, sans-serif;
     font-size: 16px;
     text-anchor: middle;
@@ -103,6 +111,7 @@
 }
 
 .axis-xy-label {
+    fill: var(--axis-color);
     font-family: "Times New Roman", Times, serif;
     font-size: 22px;
 }

@@ -28,6 +28,13 @@
     --approx-frame-border: rgba(0, 0, 0, 0.1);
     --hover-background: rgba(0, 0, 0, 0.05);
     --active-background: rgba(0, 0, 0, 0.1);
+
+    /* Graph Variables */
+    --graph-bg: #f9f9f9;
+    --axis-color: #000;
+    --grid-main-color: #000;
+    --grid-sub-color: #a6a6a6;
+    --grid-micro-color: #ccc;
 }
 
 [data-theme="dark"] {
@@ -68,6 +75,13 @@
     --active-background: rgba(255, 255, 255, 0.2);
 
     color-scheme: dark;
+
+    /* Graph Variables Dark */
+    --graph-bg: #121212;
+    --axis-color: #888;
+    --grid-main-color: #888;
+    --grid-sub-color: #333;
+    --grid-micro-color: #222;
 }
 
 body {
