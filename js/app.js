@@ -131,6 +131,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // グラフを読み込んだあと、初期表示を更新
     await URLParamsUtil.loadGraphFromHashParameter(graphStorageManager, uiManager);
+
+    // テーマに合わせて読み込まれた曲線の色を調整（黒/白の反転など）
+    if (uiManager && typeof uiManager.setupTheme === 'function') {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        uiManager.updateCurveColorsForTheme(currentTheme);
+    }
     // 初期状態に応じてホームボタンを更新（読み込みでドメインが変わるため）
     try { updateHomeVisibility(); } catch (e) { /* ignore */ }
 });
