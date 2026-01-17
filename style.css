@@ -79,6 +79,15 @@ body {
     color: var(--text-color);
 }
 
+/* Global input styles default to browser/previous css in light mode */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    color: var(--text-color);
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+}
+
 .material-symbols-rounded {
     user-select: none;
     /* pointer-events: none; */
@@ -481,7 +490,7 @@ body {
 }
 
 .selected {
-    box-shadow: inset 0 0 0 2px black;
+    box-shadow: inset 0 0 0 2px var(--primary-blue);
     transition: background-color 0.3s ease;
 }
 
@@ -509,7 +518,7 @@ body {
 }
 
 .tool-button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--hover-background);
 }
 
 .tool-button.active {
@@ -657,7 +666,7 @@ tool-button.active:hover {
 }
 
 .color-picker-panel {
-    background-color: #fff;
+    background-color: var(--panel-color);
     border-radius: 8px;
 }
 
@@ -750,8 +759,9 @@ tool-button.active:hover {
     justify-content: space-between;
     align-items: center;
     padding: 6px 8px;
-    background-color: #fff;
-    border-bottom: 1px solid #eee;
+    padding: 6px 8px;
+    background-color: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     font-weight: 500;
@@ -2463,18 +2473,17 @@ tool-button.active:hover {
     display: block;
 }
 
-/* Force dark mode for color picker if not applying */
-#color-picker-panel {
+/* Force dark mode specific overrides only when theme is dark */
+[data-theme="dark"] #color-picker-panel {
     background-color: var(--card-bg) !important;
     color: var(--text-color) !important;
     border: 1px solid var(--border-color);
 }
 
-.color-picker-header h3 {
+[data-theme="dark"] .color-picker-header h3 {
     color: var(--text-color) !important;
 }
 
-/* Fix sidebar background just in case */
-#sidebar {
+[data-theme="dark"] #sidebar {
     background-color: var(--sidebar-bg) !important;
 }
