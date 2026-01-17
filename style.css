@@ -13,6 +13,14 @@
     --modal-bg: #fff;
     --input-bg: #fff;
     --input-border: #ccc;
+
+    /* Component Variables */
+    --panel-color: #f9f9f9;
+    --disabled-background: #e9ecef;
+    --disabled-border: #ced4da;
+    --disabled-text: #6c757d;
+    --primary-color: #007bff;
+    --primary-hover-color: #0056b3;
 }
 
 [data-theme="dark"] {
@@ -33,7 +41,17 @@
     --card-bg: #2d2d2d;
     --modal-bg: #2d2d2d;
     --input-bg: #333333;
+    --input-bg: #333333;
     --input-border: #555555;
+
+    /* Component Variables Dark */
+    --panel-color: #2d2d2d;
+    --disabled-background: #3a3a3a;
+    --disabled-border: #555;
+    --disabled-text: #aaa;
+    --primary-color: #6eb5ff;
+    --primary-hover-color: #3d8bfd;
+
     color-scheme: dark;
 }
 

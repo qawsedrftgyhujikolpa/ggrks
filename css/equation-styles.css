@@ -157,7 +157,7 @@
 .latex-equation {
     font-family: 'Courier New', monospace;
     font-size: 0.9rem;
-    color: #333;
+    color: var(--text-color, #333);
     background: transparent;
     padding: 4px 8px;
     border-radius: 3px;
@@ -172,7 +172,7 @@
     text-align: center;
     padding: 12px;
     margin: 0;
-    background-color: #f8f8f8;
+    background-color: var(--panel-color, #f8f8f8);
     border-radius: 6px;
     width: calc(100% - 24px);
 }
