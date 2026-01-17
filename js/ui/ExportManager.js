@@ -103,20 +103,27 @@ export class ExportManager {
         padding: 10px 15px;
         border: 1px solid var(--border-color, #ddd);
         border-radius: 5px;
-        background-color: var(--panel-bg, #f8f9fa);
-        color: var(--text-color, #333);
+        background-color: var(--card-bg);
+        color: var(--text-color);
         cursor: pointer;
         transition: all 0.2s ease;
         font-size: 14px;
       }
       
       .export-btn:hover {
-        background-color: var(--hover-color, #e9ecef);
+        background-color: var(--hover-background);
       }
       
-      .export-btn i {
+      .export-btn i,
+      .export-btn span {
+        color: inherit;
         margin-right: 10px;
         font-size: 16px;
+      }
+      
+      .export-btn span {
+        margin-right: 0;
+        font-size: 14px;
       }
       
       .export-item {
@@ -124,12 +131,12 @@ export class ExportManager {
       }
       
       .import-btn {
-        background-color: var(--secondary-bg, #f1f8ff);
-        border-color: var(--secondary-border, #c8e1ff);
+        background-color: var(--hover-background);
+        border-color: var(--border-color);
       }
       
       .import-btn:hover {
-        background-color: var(--secondary-hover, #dbedff);
+        background-color: var(--active-background);
       }
     `;
 

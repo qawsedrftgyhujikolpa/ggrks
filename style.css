@@ -99,6 +99,7 @@
     --primary-hover-color: #cccccc;
     --checkbox-bg: #000000;
     --checkbox-border: #ffffff;
+    --text-color: #ffffff;
 }
 
 body {
@@ -1251,7 +1252,7 @@ tool-button.active:hover {
 .settings-panel {
     position: absolute;
     z-index: 1000;
-    background-color: #fff;
+    background-color: var(--card-bg);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     width: 300px;
@@ -1357,8 +1358,8 @@ tool-button.active:hover {
 }
 
 .settings-checkbox input:checked~.checkbox-custom {
-    background-color: #4285f4;
-    border-color: #4285f4;
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
 }
 
 /* Advanced mode specifically in dark mode: black/white toggle */
@@ -1407,13 +1408,12 @@ tool-button.active:hover {
     margin-right: 10px;
     width: 22px;
     text-align: center;
-    color: #555;
-    /* font-size: 16px; */
+    color: var(--icon-color);
 }
 
 .settings-checkbox span {
     font-size: 13px;
-    color: #333;
+    color: var(--text-color);
 }
 
 .close-btn {
@@ -1523,7 +1523,7 @@ tool-button.active:hover {
     margin-left: 15px;
     position: relative;
     padding-left: 10px;
-    border-left: 3px solid #e0e0e0;
+    border-left: 3px solid var(--border-color);
 }
 
 .sub-grid-item::before,
@@ -1534,7 +1534,7 @@ tool-button.active:hover {
     top: 0;
     bottom: 0;
     width: 3px;
-    background-color: #4285f4;
+    background-color: var(--primary-blue);
     border-radius: 3px;
     opacity: 0.5;
 }
@@ -1553,7 +1553,9 @@ tool-button.active:hover {
 } */
 
 .color-picker-header span,
-.settings-header span {
+.settings-header span,
+.settings-header strong,
+.settings-header i {
     font-weight: bold;
     font-size: 13px;
     color: var(--text-color);
