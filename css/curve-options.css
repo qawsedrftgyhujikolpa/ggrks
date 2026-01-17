@@ -54,8 +54,23 @@
     color: #fff;
 }
 
+[data-theme="dark"] .curve-option-btn.active {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .curve-option-btn:not(.active) {
+    background: #000000;
+    color: #ffffff;
+    border-color: #444;
+}
+
 .curve-option-btn.active:hover {
     background: var(--primary-hover-color, #0056b3);
+}
+
+[data-theme="dark"] .curve-option-btn.active:hover {
+    background: #eeeeee !important;
 }
 
 /* 黒枠と斜線のスタイルを追加 */
