@@ -1429,13 +1429,30 @@ export class UIManager {
         const savedTheme = localStorage.getItem('theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // 初期テーマ設定
-        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+        // 初期テーマ適用時の処理
+        const applyTheme = (themeName) => {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('theme', themeName);
+
+            // アイコン更新
             if (themeToggleBtn) {
-                themeToggleBtn.querySelector('i').textContent = 'light_mode';
-                themeToggleBtn.setAttribute('title', 'ライトモード切替');
+                const icon = themeToggleBtn.querySelector('i');
+                if (themeName === 'dark') {
+                    if (icon) icon.textContent = 'light_mode';
+                    themeToggleBtn.setAttribute('title', 'ライトモード切替');
+                } else {
+                    if (icon) icon.textContent = 'dark_mode';
+                    themeToggleBtn.setAttribute('title', 'ダークモード切替');
+                }
             }
+
+            // 既存の曲線の色をテーマに合わせて反転
+            this.updateCurveColorsForTheme(themeName);
+        };
+
+        // 初期ロード時の設定
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+            applyTheme('dark');
         }
 
         // イベントリスナー
@@ -1443,18 +1460,40 @@ export class UIManager {
             themeToggleBtn.addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
+            });
+        }
+    }
 
-                document.documentElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('theme', newTheme);
+    /**
+     * テーマ変更に伴い、曲線の色（黒/白）を反転させる
+     * @param {string} themeName - 'dark' or 'light'
+     */
+    updateCurveColorsForTheme(themeName) {
+        const isDark = themeName === 'dark';
 
-                // アイコン更新
-                const icon = themeToggleBtn.querySelector('i');
-                if (newTheme === 'dark') {
-                    icon.textContent = 'light_mode';
-                    themeToggleBtn.setAttribute('title', 'ライトモード切替');
-                } else {
-                    icon.textContent = 'dark_mode';
-                    themeToggleBtn.setAttribute('title', 'ダークモード切替');
+        // 置換対象と置換後の色定義 (小文字で比較)
+        const targetColor = isDark ? '#000000' : '#ffffff';
+        const targetColorName = isDark ? 'black' : 'white';
+        const replaceColor = isDark ? '#ffffff' : '#000000';
+
+        // 現在の設定色(ペン)が置換対象なら更新
+        const currentSettingColor = (this.settings.currentColor || '').toLowerCase();
+        if (currentSettingColor === targetColor || currentSettingColor === targetColorName) {
+            this.settings.currentColor = replaceColor;
+            if (this.penToolManager) {
+                this.penToolManager.updateColorDisplayMini(replaceColor);
+            }
+        }
+
+        // 既存のすべての曲線をチェックして更新
+        if (this.curveManager && this.curveManager.curves) {
+            this.curveManager.curves.forEach((curve, index) => {
+                if (!curve) return;
+                const c = (curve.color || '').toLowerCase();
+                // 黒(darkモードへ移行時)または白(lightモードへ移行時)を反転
+                if (c === targetColor || c === targetColorName) {
+                    this.curveManager.updateCurveColorById(index, replaceColor);
                 }
             });
         }

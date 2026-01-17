@@ -1422,267 +1422,296 @@ export class CurveManager {
 
         }
     }
+}
 
-    /**
-     * 曲線の線の太さの更新
-     * @param {number} size - 新しい太さ
-     */
-    updateCurveSize(size) {
-        if (this.settings.selectCurveId !== null) {
-            const id = this.settings.selectCurveId;
-            const curve = this.curves[id];
-            if (!curve) return;
+/**
+ * 指定したIDの曲線の色を更新（テーマ変更時などに使用）
+ * @param {number} id - 曲線ID (CurveManager内index)
+ * @param {string} color - 新しい色
+ */
+updateCurveColorById(id, color) {
+    const curve = this.curves[id];
+    if (!curve) return;
 
-            const numericSize = Number(size);
-            if (Number.isNaN(numericSize)) return;
-
-            const previousSize = Number(curve.size);
-            if (curve._pendingSizeHistory === undefined && previousSize !== numericSize) {
-                curve._pendingSizeHistory = previousSize;
-            }
-
-            if (previousSize === numericSize) {
-                return;
-            }
-
-            // D3パスの太さを更新
-            curve.path.attr('stroke-width', numericSize);
-            this.updateEmphasisCurveSize(numericSize);
-
-            // GraphCalculatorの曲線も更新
-            if (this.graphCalculator && curve.graphCurve) {
-                const graphCalcCurve = curve.graphCurve;
-                this.graphCalculator.updateCurve(graphCalcCurve.id, { width: numericSize });
-            }
-
-            if (this.uiManager && this.uiManager.penToolManager) {
-                this.uiManager.penToolManager.updateSizeDisplayMini(numericSize);
-            }
-
-            curve.size = numericSize;
-            this.settings.currentSize = numericSize;
-        }
+    // D3パスの色を更新（もし存在すれば）
+    if (curve.path && typeof curve.path.attr === 'function') {
+        curve.path.attr('stroke', color);
     }
 
-    /**
-     * サイズ変更を履歴に記録
-     * @param {number} newSize - 新しい太さ
-     */
-    recordSizeChange(newSize, oldSizeOverride = null) {
-        if (this.settings.selectCurveId !== null) {
-            const id = this.settings.selectCurveId;
-            const curve = this.curves[id];
-            if (!curve) return;
-            const numericNewSize = Number(newSize);
-            if (Number.isNaN(numericNewSize)) {
-                delete curve._pendingSizeHistory;
-                return;
-            }
+    // 色アイコンの更新
+    try {
+        d3.select(`.color-icon[data-id='${id}']`).style('background-color', color);
+    } catch (e) { /* ignore */ }
 
-            const fallbackOldSize = oldSizeOverride ?? curve._pendingSizeHistory;
-            const oldSize = (typeof fallbackOldSize === 'number') ? Number(fallbackOldSize) : Number(curve.size);
-
-            // 履歴に記録
-            if (oldSize !== numericNewSize) {
-                this.historyManager.addAction({
-                    type: 'size',
-                    id: id,
-                    oldSize: oldSize,
-                    newSize: numericNewSize
-                });
-            }
-
-            delete curve._pendingSizeHistory;
+    // 強調表示中ならそれも更新
+    if (this.settings.selectCurveId == id) {
+        this.updateEmphasisCurveColor(color);
+        if (this.uiManager && this.uiManager.penToolManager) {
+            this.uiManager.penToolManager.updateColorDisplayMini(color);
         }
+        this.settings.currentColor = color;
     }
 
-    /**
-     * 色変更を履歴に記録
-     * @param {string} newColor - 新しい色
-     */
-    recordColorChange(newColor, oldColorOverride = null) {
-        if (this.settings.selectCurveId !== null) {
-            const id = this.settings.selectCurveId;
-            const curve = this.curves[id];
-            if (!curve) return;
-
-            const fallbackOldColor = oldColorOverride ?? curve._pendingColorHistory;
-            const oldColorValue = (typeof fallbackOldColor === 'string') ? fallbackOldColor : curve.color;
-            const normalizedOldColor = typeof oldColorValue === 'string' ? oldColorValue.toUpperCase() : oldColorValue;
-            const normalizedNewColor = typeof newColor === 'string' ? newColor.toUpperCase() : newColor;
-
-            // 履歴に記録
-            if (normalizedOldColor !== normalizedNewColor) {
-                this.historyManager.addAction({
-                    type: 'color',
-                    id: id,
-                    oldColor: oldColorValue,
-                    newColor: newColor
-                });
-            }
-
-            if (typeof newColor === 'string') {
-                curve.color = newColor;
-                this.settings.currentColor = newColor;
-            }
-
-            delete curve._pendingColorHistory;
-        }
+    // GraphCalculatorの曲線も更新
+    if (this.graphCalculator && curve.graphCurve) {
+        const graphCalcCurve = curve.graphCurve;
+        this.graphCalculator.updateCurve(graphCalcCurve.id, { color: color });
     }
 
-    /**
-     * キャンバスのクリア
-     */
-    clearCanvas() {
-        this.historyManager.addAction({
-            type: 'clear',
-            curves: [...this.curves]
-        });
+    curve.color = color;
+}
 
-        // D3パスの削除
-        this.g.selectAll('*').remove();
+/**
+ * 曲線の線の太さの更新
+ * @param {number} size - 新しい太さ
+ */
+updateCurveSize(size) {
+    if (this.settings.selectCurveId !== null) {
+        const id = this.settings.selectCurveId;
+        const curve = this.curves[id];
+        if (!curve) return;
 
-        // GraphCalculatorの曲線も削除
-        if (this.graphCalculator) {
-            this.curves.forEach(curve => {
-                if (curve && curve.graphCurve) {
-                    this.graphCalculator.removeCurve(curve.graphCurve.id);
-                }
-            });
+        const numericSize = Number(size);
+        if (Number.isNaN(numericSize)) return;
+
+        const previousSize = Number(curve.size);
+        if (curve._pendingSizeHistory === undefined && previousSize !== numericSize) {
+            curve._pendingSizeHistory = previousSize;
         }
 
-        this.curves = [];
-        this.updateCurveList();
-        this.settings.nextCurveId = 0;
-    }
-
-    /**
-     * ドラッグ開始
-     */
-    dragStart(event) {
-        const curveId = event.target.getAttribute('data-id');
-        if (curveId) {
-            event.dataTransfer.setData('text/plain', curveId);
-            event.target.classList.add('dragging');
-            this.settings.selectCurveId = null;
-        }
-    }
-
-    /**
-     * ドラッグ中
-     */
-    dragOver(event) {
-        event.preventDefault();
-    }
-
-    /**
-     * ドロップ処理
-     */
-    drop(event) {
-        event.preventDefault();
-        // デバッグログを追加してdataTransferの内容を確認
-        console.log('Drop event data:', event.dataTransfer.getData('text'));
-
-        const draggedId = parseInt(event.dataTransfer.getData('text'));
-        if (isNaN(draggedId)) {
-            console.error('Invalid dragged ID:', event.dataTransfer.getData('text'));
+        if (previousSize === numericSize) {
             return;
         }
 
-        const targetItem = event.target.closest('.curve-item');
-        if (targetItem) {
-            const targetId = parseInt(targetItem.querySelector('.curve-id').textContent);
-            if (draggedId !== targetId) {
-                this.reorderCurves(draggedId, targetId);
+        // D3パスの太さを更新
+        curve.path.attr('stroke-width', numericSize);
+        this.updateEmphasisCurveSize(numericSize);
+
+        // GraphCalculatorの曲線も更新
+        if (this.graphCalculator && curve.graphCurve) {
+            const graphCalcCurve = curve.graphCurve;
+            this.graphCalculator.updateCurve(graphCalcCurve.id, { width: numericSize });
+        }
+
+        if (this.uiManager && this.uiManager.penToolManager) {
+            this.uiManager.penToolManager.updateSizeDisplayMini(numericSize);
+        }
+
+        curve.size = numericSize;
+        this.settings.currentSize = numericSize;
+    }
+}
+
+/**
+ * サイズ変更を履歴に記録
+ * @param {number} newSize - 新しい太さ
+ */
+recordSizeChange(newSize, oldSizeOverride = null) {
+    if (this.settings.selectCurveId !== null) {
+        const id = this.settings.selectCurveId;
+        const curve = this.curves[id];
+        if (!curve) return;
+        const numericNewSize = Number(newSize);
+        if (Number.isNaN(numericNewSize)) {
+            delete curve._pendingSizeHistory;
+            return;
+        }
+
+        const fallbackOldSize = oldSizeOverride ?? curve._pendingSizeHistory;
+        const oldSize = (typeof fallbackOldSize === 'number') ? Number(fallbackOldSize) : Number(curve.size);
+
+        // 履歴に記録
+        if (oldSize !== numericNewSize) {
+            this.historyManager.addAction({
+                type: 'size',
+                id: id,
+                oldSize: oldSize,
+                newSize: numericNewSize
+            });
+        }
+
+        delete curve._pendingSizeHistory;
+    }
+}
+
+/**
+ * 色変更を履歴に記録
+ * @param {string} newColor - 新しい色
+ */
+recordColorChange(newColor, oldColorOverride = null) {
+    if (this.settings.selectCurveId !== null) {
+        const id = this.settings.selectCurveId;
+        const curve = this.curves[id];
+        if (!curve) return;
+
+        const fallbackOldColor = oldColorOverride ?? curve._pendingColorHistory;
+        const oldColorValue = (typeof fallbackOldColor === 'string') ? fallbackOldColor : curve.color;
+        const normalizedOldColor = typeof oldColorValue === 'string' ? oldColorValue.toUpperCase() : oldColorValue;
+        const normalizedNewColor = typeof newColor === 'string' ? newColor.toUpperCase() : newColor;
+
+        // 履歴に記録
+        if (normalizedOldColor !== normalizedNewColor) {
+            this.historyManager.addAction({
+                type: 'color',
+                id: id,
+                oldColor: oldColorValue,
+                newColor: newColor
+            });
+        }
+
+        if (typeof newColor === 'string') {
+            curve.color = newColor;
+            this.settings.currentColor = newColor;
+        }
+
+        delete curve._pendingColorHistory;
+    }
+}
+
+/**
+ * キャンバスのクリア
+ */
+clearCanvas() {
+    this.historyManager.addAction({
+        type: 'clear',
+        curves: [...this.curves]
+    });
+
+    // D3パスの削除
+    this.g.selectAll('*').remove();
+
+    // GraphCalculatorの曲線も削除
+    if (this.graphCalculator) {
+        this.curves.forEach(curve => {
+            if (curve && curve.graphCurve) {
+                this.graphCalculator.removeCurve(curve.graphCurve.id);
             }
+        });
+    }
+
+    this.curves = [];
+    this.updateCurveList();
+    this.settings.nextCurveId = 0;
+}
+
+/**
+ * ドラッグ開始
+ */
+dragStart(event) {
+    const curveId = event.target.getAttribute('data-id');
+    if (curveId) {
+        event.dataTransfer.setData('text/plain', curveId);
+        event.target.classList.add('dragging');
+        this.settings.selectCurveId = null;
+    }
+}
+
+/**
+ * ドラッグ中
+ */
+dragOver(event) {
+    event.preventDefault();
+}
+
+/**
+ * ドロップ処理
+ */
+drop(event) {
+    event.preventDefault();
+    // デバッグログを追加してdataTransferの内容を確認
+    console.log('Drop event data:', event.dataTransfer.getData('text'));
+
+    const draggedId = parseInt(event.dataTransfer.getData('text'));
+    if (isNaN(draggedId)) {
+        console.error('Invalid dragged ID:', event.dataTransfer.getData('text'));
+        return;
+    }
+
+    const targetItem = event.target.closest('.curve-item');
+    if (targetItem) {
+        const targetId = parseInt(targetItem.querySelector('.curve-id').textContent);
+        if (draggedId !== targetId) {
+            this.reorderCurves(draggedId, targetId);
         }
     }
+}
 
-    /**
-     * ドラッグ終了
-     */
-    dragEnd(event) {
-        event.target.classList.remove('dragging');
-    }
+/**
+ * ドラッグ終了
+ */
+dragEnd(event) {
+    event.target.classList.remove('dragging');
+}
 
-    /**
-     * 曲線の描画順番変更
-     */
-    reorderCurves(fromId, toId) {
-        const curve = this.curves[fromId];
-        this.curves.splice(fromId, 1);
-        this.curves.splice(toId, 0, curve);
+/**
+ * 曲線の描画順番変更
+ */
+reorderCurves(fromId, toId) {
+    const curve = this.curves[fromId];
+    this.curves.splice(fromId, 1);
+    this.curves.splice(toId, 0, curve);
 
-        // idを昇順に更新
-        this.curves.forEach((curve, index) => {
-            if (curve) {
-                curve.id = index;
-            }
-        });
+    // idを昇順に更新
+    this.curves.forEach((curve, index) => {
+        if (curve) {
+            curve.id = index;
+        }
+    });
 
-        this.updateCurveList();
+    this.updateCurveList();
 
-        // 曲線リストの更新後に色アイコンの背景色を確実に再設定
-        this.curves.forEach((curve, index) => {
-            if (curve) {
-                const colorIcon = document.querySelector(`.color-icon[data-id="${index}"]`);
-                if (colorIcon) {
-                    colorIcon.style.backgroundColor = curve.color;
-                    // 可視性の状態も確実に同期
-                    if (curve.isHidden) {
-                        colorIcon.classList.add('hidden-curve');
-                    } else {
-                        colorIcon.classList.remove('hidden-curve');
-                    }
+    // 曲線リストの更新後に色アイコンの背景色を確実に再設定
+    this.curves.forEach((curve, index) => {
+        if (curve) {
+            const colorIcon = document.querySelector(`.color-icon[data-id="${index}"]`);
+            if (colorIcon) {
+                colorIcon.style.backgroundColor = curve.color;
+                // 可視性の状態も確実に同期
+                if (curve.isHidden) {
+                    colorIcon.classList.add('hidden-curve');
+                } else {
+                    colorIcon.classList.remove('hidden-curve');
                 }
             }
-        });
+        }
+    });
 
-        this.redrawCurves();
-        this.historyManager.addAction({
-            type: 'reorder',
-            fromId: fromId,
-            toId: toId
-        });
-    }
+    this.redrawCurves();
+    this.historyManager.addAction({
+        type: 'reorder',
+        fromId: fromId,
+        toId: toId
+    });
+}
 
-    /**
-     * 曲線の再描画
-     * @param {boolean} useGraphCalculator - GraphCalculatorを使用して曲線を更新するかどうか
-     */
-    redrawCurves(useGraphCalculator = false) {
-        // 選択中の曲線IDを保存
-        const selectedCurveId = this.settings.selectCurveId;
+/**
+ * 曲線の再描画
+ * @param {boolean} useGraphCalculator - GraphCalculatorを使用して曲線を更新するかどうか
+ */
+redrawCurves(useGraphCalculator = false) {
+    // 選択中の曲線IDを保存
+    const selectedCurveId = this.settings.selectCurveId;
 
-        // すべての強調表示を削除
-        this.delEmphasisCurve();
+    // すべての強調表示を削除
+    this.delEmphasisCurve();
 
-        this.g.selectAll('*').remove();
+    this.g.selectAll('*').remove();
 
-        this.curves.forEach(curve => {
-            if (curve) {
-                if (useGraphCalculator && this.graphCalculator && curve.graphCurve) {
-                    // GraphCalculatorから最新のパスデータを取得
-                    const curveObj = this.graphCalculator.getCurve(curve.graphCurve.id);
-                    if (curveObj && curveObj.path) {
-                        const pathData = curveObj.path.getAttribute('d');
-                        curve.path = this.g.append('path')
-                            .attr('fill', 'none')
-                            .attr('stroke', curve.color)
-                            .attr('stroke-width', curve.size)
-                            .attr('stroke-linecap', 'round')
-                            .attr('d', pathData);
-                    } else {
-                        // GraphCalculatorから取得できない場合は既存のパスデータを使用
-                        curve.path = this.g.append('path')
-                            .attr('fill', 'none')
-                            .attr('stroke', curve.color)
-                            .attr('stroke-width', curve.size)
-                            .attr('stroke-linecap', 'round')
-                            .attr('d', curve.path.attr('d'));
-                    }
+    this.curves.forEach(curve => {
+        if (curve) {
+            if (useGraphCalculator && this.graphCalculator && curve.graphCurve) {
+                // GraphCalculatorから最新のパスデータを取得
+                const curveObj = this.graphCalculator.getCurve(curve.graphCurve.id);
+                if (curveObj && curveObj.path) {
+                    const pathData = curveObj.path.getAttribute('d');
+                    curve.path = this.g.append('path')
+                        .attr('fill', 'none')
+                        .attr('stroke', curve.color)
+                        .attr('stroke-width', curve.size)
+                        .attr('stroke-linecap', 'round')
+                        .attr('d', pathData);
                 } else {
-                    // 通常の再描画
+                    // GraphCalculatorから取得できない場合は既存のパスデータを使用
                     curve.path = this.g.append('path')
                         .attr('fill', 'none')
                         .attr('stroke', curve.color)
@@ -1690,868 +1719,877 @@ export class CurveManager {
                         .attr('stroke-linecap', 'round')
                         .attr('d', curve.path.attr('d'));
                 }
+            } else {
+                // 通常の再描画
+                curve.path = this.g.append('path')
+                    .attr('fill', 'none')
+                    .attr('stroke', curve.color)
+                    .attr('stroke-width', curve.size)
+                    .attr('stroke-linecap', 'round')
+                    .attr('d', curve.path.attr('d'));
+            }
+        }
+    });
+
+    // 選択中の曲線があれば強調表示を復元
+    if (selectedCurveId !== null && this.curves[selectedCurveId]) {
+        setTimeout(() => {
+            // curve-itemのdata-id属性 selectedCurveIdの選択状態を復元
+            d3.select(`.curve-item[data-id='${selectedCurveId}']`).classed('selected', true);
+            this.emphasisCurve(selectedCurveId);
+        }, 10);
+    }
+}
+
+/**
+ * グラフ計算機のリサイズ後に曲線を更新
+ */
+updateCurvesAfterResize() {
+    if (!this.graphCalculator) return;
+
+    // GraphCalculatorの曲線が更新されるのを待つ
+    setTimeout(() => {
+        this.redrawCurves(true);
+    }, 10);
+}
+
+/**
+ * GraphCalculatorの曲線IDからCurveManagerの曲線IDを取得
+ * @param {string|number} graphCurveId - GraphCalculatorの曲線ID
+ * @returns {number|null} CurveManagerの曲線ID、見つからない場合はnull
+ */
+getCurveIdByGraphCurveId(graphCurveId) {
+    for (let i = 0; i < this.curves.length; i++) {
+        if (this.curves[i] && this.curves[i].graphCurve && this.curves[i].graphCurve.id == graphCurveId) {
+            return i;
+        }
+    }
+    return null;
+}
+
+/**
+ * 曲線の詳細表示状態を取得
+ * @param {number} id - 曲線ID
+ * @returns {boolean} 詳細が表示されているか
+ */
+getCurveDetailState(id) {
+    if (id !== null && id >= 0 && id < this.curves.length && this.curves[id]) {
+        return this.curves[id].isDetailShown;
+    }
+    return false;
+}
+
+/**
+ * 曲線の詳細表示状態を設定
+ * @param {number} id - 曲線ID
+ * @param {boolean} detailShown - 詳細表示状態
+ */
+setCurveDetailState(id, detailShown) {
+    if (id !== null && id >= 0 && id < this.curves.length && this.curves[id]) {
+        this.curves[id].isDetailShown = detailShown;
+
+        // UI要素も更新
+        const curveItem = d3.select(`.curve-item:nth-child(${id + 1})`);
+        if (!curveItem.empty()) {
+            // Toggle collapsed state on the parent .curve-item for animated collapse/expand
+            curveItem.classed('collapsed', !detailShown);
+            // Keep the details/options visibility classes in sync for legacy checks if needed
+            curveItem.select('.curve-details').classed('hidden', false);
+            curveItem.select('.curve-options').classed('hidden', false);
+            // Match color-picker behavior: rotate when collapsed, so keep rotated in sync with !detailShown
+            curveItem.select('.details-dropdown').classed('rotated', !detailShown);
+        }
+    }
+}
+
+/**
+ * GraphCalculatorの曲線IDから曲線を選択
+ * @param {string|number} graphCurveId - GraphCalculatorの曲線ID
+ */
+selectCurveByGraphCurveId(graphCurveId) {
+    const curveId = this.getCurveIdByGraphCurveId(graphCurveId);
+    if (curveId !== null) {
+        const curveItem = d3.select(`.curve-item:nth-child(${curveId + 1})`);
+        if (!curveItem.empty()) {
+            this.selectCurve(curveItem, curveId);
+        }
+    }
+}
+
+/**
+ * 曲線の表示・非表示を設定
+ * @param {number} id - 曲線ID
+ * @param {boolean} visible - 表示するか
+ */
+setCurveVisibility(id, visible) {
+    const curve = this.curves[id];
+    if (!curve) return;
+
+    // 曲線の表示/非表示状態を設定
+    curve.isHidden = !visible;
+
+    // グラフ計算機のグループ要素の表示・非表示を設定
+    if (this.graphCalculator) {
+        this.graphCalculator.setCurveGroupVisibility(id, visible);
+    }
+
+    // アイコンUIの切り替え
+    const colorIcon = document.querySelector(`.color-icon[data-id="${id}"]`);
+    if (colorIcon) {
+        if (!visible) {
+            colorIcon.classList.add('hidden-curve');
+        } else {
+            colorIcon.classList.remove('hidden-curve');
+        }
+    } else {
+        console.warn(`Color icon for curve ID ${id} not found.`);
+    }
+}
+
+/**
+ * 曲線のスタイル変更（色とサイズ）を記録
+ * @param {string} newColor - 新しい色（色を変更しない場合は現在の色）
+ * @param {number} newSize - 新しいサイズ（サイズを変更しない場合は現在のサイズ）
+ */
+recordStyleChange(newColor, newSize) {
+    if (this.settings.selectCurveId !== null) {
+        console.log("recordStyleChange");
+        const id = this.settings.selectCurveId;
+        const curve = this.curves[id];
+
+        if (!curve) return;
+
+        const oldColor = curve.color;
+        const oldSize = curve.size;
+        console.log("recordStyleChange", oldColor, newColor, oldSize, newSize);
+
+        // 何も変更がなければ何もしない
+        if (oldColor === newColor && oldSize === newSize) return;
+        console.log("recordStyleChange", oldColor, newColor, oldSize, newSize);
+
+        // 履歴に追加
+        this.historyManager.addAction({
+            type: 'styleChange',
+            id: id,
+            oldStyle: {
+                color: oldColor,
+                size: oldSize
+            },
+            newStyle: {
+                color: newColor,
+                size: newSize
             }
         });
 
-        // 選択中の曲線があれば強調表示を復元
-        if (selectedCurveId !== null && this.curves[selectedCurveId]) {
-            setTimeout(() => {
-                // curve-itemのdata-id属性 selectedCurveIdの選択状態を復元
-                d3.select(`.curve-item[data-id='${selectedCurveId}']`).classed('selected', true);
-                this.emphasisCurve(selectedCurveId);
-            }, 10);
-        }
-    }
+        // 実際に更新
+        if (oldColor !== newColor) {
+            // 色の更新
+            curve.path.attr('stroke', newColor);
+            d3.select(`.color-icon[data-id='${id}']`).style('background-color', newColor);
+            this.updateEmphasisCurveColor(newColor);
 
-    /**
-     * グラフ計算機のリサイズ後に曲線を更新
-     */
-    updateCurvesAfterResize() {
-        if (!this.graphCalculator) return;
-
-        // GraphCalculatorの曲線が更新されるのを待つ
-        setTimeout(() => {
-            this.redrawCurves(true);
-        }, 10);
-    }
-
-    /**
-     * GraphCalculatorの曲線IDからCurveManagerの曲線IDを取得
-     * @param {string|number} graphCurveId - GraphCalculatorの曲線ID
-     * @returns {number|null} CurveManagerの曲線ID、見つからない場合はnull
-     */
-    getCurveIdByGraphCurveId(graphCurveId) {
-        for (let i = 0; i < this.curves.length; i++) {
-            if (this.curves[i] && this.curves[i].graphCurve && this.curves[i].graphCurve.id == graphCurveId) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 曲線の詳細表示状態を取得
-     * @param {number} id - 曲線ID
-     * @returns {boolean} 詳細が表示されているか
-     */
-    getCurveDetailState(id) {
-        if (id !== null && id >= 0 && id < this.curves.length && this.curves[id]) {
-            return this.curves[id].isDetailShown;
-        }
-        return false;
-    }
-
-    /**
-     * 曲線の詳細表示状態を設定
-     * @param {number} id - 曲線ID
-     * @param {boolean} detailShown - 詳細表示状態
-     */
-    setCurveDetailState(id, detailShown) {
-        if (id !== null && id >= 0 && id < this.curves.length && this.curves[id]) {
-            this.curves[id].isDetailShown = detailShown;
-
-            // UI要素も更新
-            const curveItem = d3.select(`.curve-item:nth-child(${id + 1})`);
-            if (!curveItem.empty()) {
-                // Toggle collapsed state on the parent .curve-item for animated collapse/expand
-                curveItem.classed('collapsed', !detailShown);
-                // Keep the details/options visibility classes in sync for legacy checks if needed
-                curveItem.select('.curve-details').classed('hidden', false);
-                curveItem.select('.curve-options').classed('hidden', false);
-                // Match color-picker behavior: rotate when collapsed, so keep rotated in sync with !detailShown
-                curveItem.select('.details-dropdown').classed('rotated', !detailShown);
-            }
-        }
-    }
-
-    /**
-     * GraphCalculatorの曲線IDから曲線を選択
-     * @param {string|number} graphCurveId - GraphCalculatorの曲線ID
-     */
-    selectCurveByGraphCurveId(graphCurveId) {
-        const curveId = this.getCurveIdByGraphCurveId(graphCurveId);
-        if (curveId !== null) {
-            const curveItem = d3.select(`.curve-item:nth-child(${curveId + 1})`);
-            if (!curveItem.empty()) {
-                this.selectCurve(curveItem, curveId);
-            }
-        }
-    }
-
-    /**
-     * 曲線の表示・非表示を設定
-     * @param {number} id - 曲線ID
-     * @param {boolean} visible - 表示するか
-     */
-    setCurveVisibility(id, visible) {
-        const curve = this.curves[id];
-        if (!curve) return;
-
-        // 曲線の表示/非表示状態を設定
-        curve.isHidden = !visible;
-
-        // グラフ計算機のグループ要素の表示・非表示を設定
-        if (this.graphCalculator) {
-            this.graphCalculator.setCurveGroupVisibility(id, visible);
-        }
-
-        // アイコンUIの切り替え
-        const colorIcon = document.querySelector(`.color-icon[data-id="${id}"]`);
-        if (colorIcon) {
-            if (!visible) {
-                colorIcon.classList.add('hidden-curve');
-            } else {
-                colorIcon.classList.remove('hidden-curve');
-            }
-        } else {
-            console.warn(`Color icon for curve ID ${id} not found.`);
-        }
-    }
-
-    /**
-     * 曲線のスタイル変更（色とサイズ）を記録
-     * @param {string} newColor - 新しい色（色を変更しない場合は現在の色）
-     * @param {number} newSize - 新しいサイズ（サイズを変更しない場合は現在のサイズ）
-     */
-    recordStyleChange(newColor, newSize) {
-        if (this.settings.selectCurveId !== null) {
-            console.log("recordStyleChange");
-            const id = this.settings.selectCurveId;
-            const curve = this.curves[id];
-
-            if (!curve) return;
-
-            const oldColor = curve.color;
-            const oldSize = curve.size;
-            console.log("recordStyleChange", oldColor, newColor, oldSize, newSize);
-
-            // 何も変更がなければ何もしない
-            if (oldColor === newColor && oldSize === newSize) return;
-            console.log("recordStyleChange", oldColor, newColor, oldSize, newSize);
-
-            // 履歴に追加
-            this.historyManager.addAction({
-                type: 'styleChange',
-                id: id,
-                oldStyle: {
-                    color: oldColor,
-                    size: oldSize
-                },
-                newStyle: {
-                    color: newColor,
-                    size: newSize
-                }
-            });
-
-            // 実際に更新
-            if (oldColor !== newColor) {
-                // 色の更新
-                curve.path.attr('stroke', newColor);
-                d3.select(`.color-icon[data-id='${id}']`).style('background-color', newColor);
-                this.updateEmphasisCurveColor(newColor);
-
-                // GraphCalculatorの曲線も更新
-                if (this.graphCalculator && curve.graphCurve) {
-                    this.graphCalculator.updateCurve(curve.graphCurve.id, { color: newColor });
-                }
-
-                curve.color = newColor;
+            // GraphCalculatorの曲線も更新
+            if (this.graphCalculator && curve.graphCurve) {
+                this.graphCalculator.updateCurve(curve.graphCurve.id, { color: newColor });
             }
 
-            if (oldSize !== newSize) {
-                // サイズの更新
-                curve.path.attr('stroke-width', newSize);
-                this.updateEmphasisCurveSize(Number(newSize));
+            curve.color = newColor;
+        }
 
-                // GraphCalculatorの曲線も更新
-                if (this.graphCalculator && curve.graphCurve) {
-                    this.graphCalculator.updateCurve(curve.graphCurve.id, { width: newSize });
-                }
+        if (oldSize !== newSize) {
+            // サイズの更新
+            curve.path.attr('stroke-width', newSize);
+            this.updateEmphasisCurveSize(Number(newSize));
 
-                curve.size = newSize;
+            // GraphCalculatorの曲線も更新
+            if (this.graphCalculator && curve.graphCurve) {
+                this.graphCalculator.updateCurve(curve.graphCurve.id, { width: newSize });
             }
+
+            curve.size = newSize;
         }
     }
+}
 
-    /**
-     * 曲線の関数式を設定
-     * @param {number} id - 曲線ID
-     * @param {Array<string>} equations - 関数式の配列
-     */
-    setLatexEquations(id, equations) {
-        // 曲線オブジェクト内に直接保存する方式に変更
-        const curve = this.curves[id];
-        if (curve) {
-            curve.latexEquations = equations;
-        }
+/**
+ * 曲線の関数式を設定
+ * @param {number} id - 曲線ID
+ * @param {Array<string>} equations - 関数式の配列
+ */
+setLatexEquations(id, equations) {
+    // 曲線オブジェクト内に直接保存する方式に変更
+    const curve = this.curves[id];
+    if (curve) {
+        curve.latexEquations = equations;
     }
+}
 
-    /**
-     * 数式をクリップボードにコピー
-     * @param {string} eq - 数式オブジェクト
-     * @param {HTMLElement} buttonElement - コピーボタン要素
-     */
-    copyEquationToClipboard(eq, buttonElement) {
-        try {
-            const rawSource = (eq.latex || eq.formula || '').toString();
-            // Avoid double-inserting \left / \right if they already exist.
-            const LEFT_PLACEHOLDER = '__LEFT_PLACEHOLDER__';
-            const RIGHT_PLACEHOLDER = '__RIGHT_PLACEHOLDER__';
-            let source = rawSource.replace(/\\left\(/g, LEFT_PLACEHOLDER).replace(/\\right\)/g, RIGHT_PLACEHOLDER);
-            let formatted = source.replace(/\(/g, '\\left(').replace(/\)/g, '\\right)');
-            formatted = formatted.replace(new RegExp(LEFT_PLACEHOLDER, 'g'), '\\left(').replace(new RegExp(RIGHT_PLACEHOLDER, 'g'), '\\right)');
-            const axis = (eq.domainAxis || (eq.type === 'vertical' ? 'y' : 'x')) || 'x';
-            const hasDomain = eq.domain && eq.domain.start != null && eq.domain.end != null;
-            const cleanFormula = hasDomain
-                ? `${formatted} \\left\\{${eq.domain.start} \\le ${axis} \\le ${eq.domain.end}\\right\\}`
-                : formatted;
+/**
+ * 数式をクリップボードにコピー
+ * @param {string} eq - 数式オブジェクト
+ * @param {HTMLElement} buttonElement - コピーボタン要素
+ */
+copyEquationToClipboard(eq, buttonElement) {
+    try {
+        const rawSource = (eq.latex || eq.formula || '').toString();
+        // Avoid double-inserting \left / \right if they already exist.
+        const LEFT_PLACEHOLDER = '__LEFT_PLACEHOLDER__';
+        const RIGHT_PLACEHOLDER = '__RIGHT_PLACEHOLDER__';
+        let source = rawSource.replace(/\\left\(/g, LEFT_PLACEHOLDER).replace(/\\right\)/g, RIGHT_PLACEHOLDER);
+        let formatted = source.replace(/\(/g, '\\left(').replace(/\)/g, '\\right)');
+        formatted = formatted.replace(new RegExp(LEFT_PLACEHOLDER, 'g'), '\\left(').replace(new RegExp(RIGHT_PLACEHOLDER, 'g'), '\\right)');
+        const axis = (eq.domainAxis || (eq.type === 'vertical' ? 'y' : 'x')) || 'x';
+        const hasDomain = eq.domain && eq.domain.start != null && eq.domain.end != null;
+        const cleanFormula = hasDomain
+            ? `${formatted} \\left\\{${eq.domain.start} \\le ${axis} \\le ${eq.domain.end}\\right\\}`
+            : formatted;
 
-            // クリップボードにコピー
-            navigator.clipboard.writeText(cleanFormula).then(() => {
-                // コピー成功時のアニメーション
-                buttonElement.classList.add('copy-success');
-
-                // アイコンを一時的に変更
-                const originalHTML = buttonElement.innerHTML;
-                buttonElement.innerHTML = '<i class="material-symbols-rounded">check</i>';
-
-                // 元に戻す
-                setTimeout(() => {
-                    buttonElement.classList.remove('copy-success');
-                    buttonElement.innerHTML = originalHTML;
-                }, 1500);
-            }).catch(err => {
-                console.error('クリップボードへのコピーに失敗しました:', err);
-                this.fallbackCopyToClipboard(cleanFormula, buttonElement);
-            });
-        } catch (err) {
-            console.error('クリップボード操作エラー:', err);
-            const fallback = (eq && (eq.latex || eq.formula)) ? (eq.latex || eq.formula) : '';
-            this.fallbackCopyToClipboard(fallback, buttonElement);
-        }
-    }
-
-    /**
-     * クリップボードのフォールバック実装
-     * @param {string} text - コピーするテキスト
-     * @param {HTMLElement} buttonElement - コピーボタン要素
-     */
-    fallbackCopyToClipboard(text, buttonElement) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-
-        try {
-            textArea.select();
-            document.execCommand('copy');
-
+        // クリップボードにコピー
+        navigator.clipboard.writeText(cleanFormula).then(() => {
             // コピー成功時のアニメーション
             buttonElement.classList.add('copy-success');
+
+            // アイコンを一時的に変更
             const originalHTML = buttonElement.innerHTML;
             buttonElement.innerHTML = '<i class="material-symbols-rounded">check</i>';
 
+            // 元に戻す
             setTimeout(() => {
                 buttonElement.classList.remove('copy-success');
                 buttonElement.innerHTML = originalHTML;
             }, 1500);
-        } catch (err) {
-            console.error('フォールバックコピーに失敗しました:', err);
-        } finally {
-            document.body.removeChild(textArea);
+        }).catch(err => {
+            console.error('クリップボードへのコピーに失敗しました:', err);
+            this.fallbackCopyToClipboard(cleanFormula, buttonElement);
+        });
+    } catch (err) {
+        console.error('クリップボード操作エラー:', err);
+        const fallback = (eq && (eq.latex || eq.formula)) ? (eq.latex || eq.formula) : '';
+        this.fallbackCopyToClipboard(fallback, buttonElement);
+    }
+}
+
+/**
+ * クリップボードのフォールバック実装
+ * @param {string} text - コピーするテキスト
+ * @param {HTMLElement} buttonElement - コピーボタン要素
+ */
+fallbackCopyToClipboard(text, buttonElement) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+
+    try {
+        textArea.select();
+        document.execCommand('copy');
+
+        // コピー成功時のアニメーション
+        buttonElement.classList.add('copy-success');
+        const originalHTML = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="material-symbols-rounded">check</i>';
+
+        setTimeout(() => {
+            buttonElement.classList.remove('copy-success');
+            buttonElement.innerHTML = originalHTML;
+        }, 1500);
+    } catch (err) {
+        console.error('フォールバックコピーに失敗しました:', err);
+    } finally {
+        document.body.removeChild(textArea);
+    }
+}
+
+/**
+ * 関数をハイライト表示 - EquationHighlighterを使用
+ */
+highlightFunction(curveId, sectionIndex, equation) {
+    if (!this.equationHighlighter || !this.curves[curveId]) return;
+    return this.equationHighlighter.highlightEquation(this.curves[curveId], sectionIndex, equation);
+}
+
+/**
+ * 関数ハイライトの解除 - EquationHighlighterを使用
+ */
+unhighlightFunction() {
+    if (!this.equationHighlighter) return;
+    this.equationHighlighter.unhighlightEquation();
+}
+
+/**
+ * 手書き曲線を追加（曲線近似を含む処理）
+ * @param {Object} descriptor - 曲線の記述子 { id, domainPath, color, size, useAdvancedMode, approximatorSettings }
+ * @returns {Object} 追加結果 {success: boolean, message: string, curve: Object}
+ */
+addHandDrawnCurve(descriptor) {
+    let result = { success: false, message: '', curve: null };
+
+    if (!descriptor || typeof descriptor !== 'object') {
+        result.message = 'addHandDrawnCurve requires a descriptor object';
+        return result;
+    }
+
+    const id = descriptor.id;
+    const domainPath = descriptor.domainPath || descriptor.points || [];
+    const color = descriptor.color;
+    const size = descriptor.size;
+    const useAdvancedMode = descriptor.useAdvancedMode;
+    const approximatorSettings = descriptor.approximatorSettings || this.approximatorSettings;
+
+    // --- placeholder 戦略: 早期に this.curves[id] を確保して UI が参照できるようにする ---
+    // 既に存在する場合は上書きしない
+    if (!this.curves[id]) {
+        const placeholder = {
+            id: id,
+            type: 'unknown',
+            path: null,
+            color: color || (approximatorSettings && approximatorSettings.color) || '#000',
+            size: size || (approximatorSettings && approximatorSettings.size) || 1,
+            isHidden: false,
+            isDetailShown: true,
+            // 曲線追加直後は移動可能（locked: false）
+            locked: false,
+            // 節点表示フラグ（曲線ごとに保持）
+            showKnots: (approximatorSettings && typeof approximatorSettings.showKnotsDefault !== 'undefined') ? !!approximatorSettings.showKnotsDefault : true,
+            graphCurve: null,
+            latexEquations: [],
+            preKnots: [],
+            knotCount: 0,
+            originalPoints: Array.isArray(domainPath) ? domainPath.slice() : [],
+        };
+        // 配列の該当 index にセット（splice を使わず直接代入して参照を壊さない）
+        this.curves[id] = placeholder;
+        // 先にサイドバーのプレースホルダ要素を追加（内容は近似後に更新される）
+        try {
+            this.addCurveToList(id, placeholder.color, placeholder.size, true, approximatorSettings || this.approximatorSettings, placeholder.type);
+        } catch (e) {
+            // UI が未初期化の場合は無視
         }
     }
 
-    /**
-     * 関数をハイライト表示 - EquationHighlighterを使用
-     */
-    highlightFunction(curveId, sectionIndex, equation) {
-        if (!this.equationHighlighter || !this.curves[curveId]) return;
-        return this.equationHighlighter.highlightEquation(this.curves[curveId], sectionIndex, equation);
-    }
+    // GraphCalculatorの曲線を追加
+    let graphCurve = null;
+    let latexEquations = []; // LaTeX方程式を保存用の変数を追加
 
-    /**
-     * 関数ハイライトの解除 - EquationHighlighterを使用
-     */
-    unhighlightFunction() {
-        if (!this.equationHighlighter) return;
-        this.equationHighlighter.unhighlightEquation();
-    }
+    this.setApproximatorSettings(approximatorSettings);
 
-    /**
-     * 手書き曲線を追加（曲線近似を含む処理）
-     * @param {Object} descriptor - 曲線の記述子 { id, domainPath, color, size, useAdvancedMode, approximatorSettings }
-     * @returns {Object} 追加結果 {success: boolean, message: string, curve: Object}
-     */
-    addHandDrawnCurve(descriptor) {
-        let result = { success: false, message: '', curve: null };
+    const domainInfo = this.graphCalculator && typeof this.graphCalculator.getDomain === 'function'
+        ? this.graphCalculator.getDomain()
+        : null;
 
-        if (!descriptor || typeof descriptor !== 'object') {
-            result.message = 'addHandDrawnCurve requires a descriptor object';
-            return result;
-        }
-
-        const id = descriptor.id;
-        const domainPath = descriptor.domainPath || descriptor.points || [];
-        const color = descriptor.color;
-        const size = descriptor.size;
-        const useAdvancedMode = descriptor.useAdvancedMode;
-        const approximatorSettings = descriptor.approximatorSettings || this.approximatorSettings;
-
-        // --- placeholder 戦略: 早期に this.curves[id] を確保して UI が参照できるようにする ---
-        // 既に存在する場合は上書きしない
-        if (!this.curves[id]) {
-            const placeholder = {
-                id: id,
-                type: 'unknown',
-                path: null,
-                color: color || (approximatorSettings && approximatorSettings.color) || '#000',
-                size: size || (approximatorSettings && approximatorSettings.size) || 1,
-                isHidden: false,
-                isDetailShown: true,
-                // 曲線追加直後は移動可能（locked: false）
-                locked: false,
-                // 節点表示フラグ（曲線ごとに保持）
-                showKnots: (approximatorSettings && typeof approximatorSettings.showKnotsDefault !== 'undefined') ? !!approximatorSettings.showKnotsDefault : true,
-                graphCurve: null,
-                latexEquations: [],
-                preKnots: [],
-                knotCount: 0,
-                originalPoints: Array.isArray(domainPath) ? domainPath.slice() : [],
-            };
-            // 配列の該当 index にセット（splice を使わず直接代入して参照を壊さない）
-            this.curves[id] = placeholder;
-            // 先にサイドバーのプレースホルダ要素を追加（内容は近似後に更新される）
-            try {
-                this.addCurveToList(id, placeholder.color, placeholder.size, true, approximatorSettings || this.approximatorSettings, placeholder.type);
-            } catch (e) {
-                // UI が未初期化の場合は無視
-            }
-        }
-
-        // GraphCalculatorの曲線を追加
-        let graphCurve = null;
-        let latexEquations = []; // LaTeX方程式を保存用の変数を追加
-
-        this.setApproximatorSettings(approximatorSettings);
-
-        const domainInfo = this.graphCalculator && typeof this.graphCalculator.getDomain === 'function'
-            ? this.graphCalculator.getDomain()
-            : null;
-
-        const attempts = [];
-        const getErrorScore = (approximation) => {
-            if (!approximation || !approximation.success) {
-                return Number.POSITIVE_INFINITY;
-            }
-            if (approximation.diagnostics && Number.isFinite(approximation.diagnostics.rmsError)) {
-                return Math.abs(approximation.diagnostics.rmsError);
-            }
-            if (typeof approximation.averageLinearity === 'number') {
-                return Math.max(0, 1 - approximation.averageLinearity);
-            }
-            if (Array.isArray(approximation.segments)) {
-                const segmentErrors = approximation.segments
-                    .map(seg => (seg && Number.isFinite(seg.rmsError)) ? Math.abs(seg.rmsError) : null)
-                    .filter(val => val !== null);
-                if (segmentErrors.length) {
-                    return segmentErrors.reduce((sum, val) => sum + val, 0) / segmentErrors.length;
-                }
-            }
+    const attempts = [];
+    const getErrorScore = (approximation) => {
+        if (!approximation || !approximation.success) {
             return Number.POSITIVE_INFINITY;
-        };
+        }
+        if (approximation.diagnostics && Number.isFinite(approximation.diagnostics.rmsError)) {
+            return Math.abs(approximation.diagnostics.rmsError);
+        }
+        if (typeof approximation.averageLinearity === 'number') {
+            return Math.max(0, 1 - approximation.averageLinearity);
+        }
+        if (Array.isArray(approximation.segments)) {
+            const segmentErrors = approximation.segments
+                .map(seg => (seg && Number.isFinite(seg.rmsError)) ? Math.abs(seg.rmsError) : null)
+                .filter(val => val !== null);
+            if (segmentErrors.length) {
+                return segmentErrors.reduce((sum, val) => sum + val, 0) / segmentErrors.length;
+            }
+        }
+        return Number.POSITIVE_INFINITY;
+    };
 
-        const registerAttempt = (label, approximation, priority) => {
-            const error = getErrorScore(approximation);
-            attempts.push({ label, approximation, priority, error });
-        };
+    const registerAttempt = (label, approximation, priority) => {
+        const error = getErrorScore(approximation);
+        attempts.push({ label, approximation, priority, error });
+    };
 
-        const piecewiseResult = this.piecewiseLinearApproximator.approximate(domainPath, domainInfo);
-        registerAttempt('piecewiseLinear', piecewiseResult, 0);
+    const piecewiseResult = this.piecewiseLinearApproximator.approximate(domainPath, domainInfo);
+    registerAttempt('piecewiseLinear', piecewiseResult, 0);
 
-        const linearResult = this.linearApproximator.approximate(domainPath, domainInfo);
-        const linearPriority = (linearResult && linearResult.success && linearResult.type === 'constant') ? 1 : 2;
-        const linearLabel = (linearResult && linearResult.success && linearResult.type === 'vertical') ? 'linearVertical' : 'linear';
-        registerAttempt(linearLabel, linearResult, linearPriority);
+    const linearResult = this.linearApproximator.approximate(domainPath, domainInfo);
+    const linearPriority = (linearResult && linearResult.success && linearResult.type === 'constant') ? 1 : 2;
+    const linearLabel = (linearResult && linearResult.success && linearResult.type === 'vertical') ? 'linearVertical' : 'linear';
+    registerAttempt(linearLabel, linearResult, linearPriority);
 
-        const singleQuadraticResult = this.singleQuadraticApproximator
-            ? this.singleQuadraticApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
-            : null;
-        registerAttempt('singleQuadratic', singleQuadraticResult, 3);
+    const singleQuadraticResult = this.singleQuadraticApproximator
+        ? this.singleQuadraticApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
+        : null;
+    registerAttempt('singleQuadratic', singleQuadraticResult, 3);
 
-        const singleCircleResult = this.singleCircleApproximator
-            ? this.singleCircleApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
-            : null;
-        registerAttempt('singleCircle', singleCircleResult, 4);
+    const singleCircleResult = this.singleCircleApproximator
+        ? this.singleCircleApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
+        : null;
+    registerAttempt('singleCircle', singleCircleResult, 4);
 
-        const quadraticBSplineResult = this.quadraticApproximator.approximate(
+    const quadraticBSplineResult = this.quadraticApproximator.approximate(
+        domainPath,
+        domainInfo,
+        this.approximatorSettings
+    );
+    registerAttempt('quadraticBSpline', quadraticBSplineResult, 5);
+
+    // const quadraticChainResult = this.quadraticBezierChainApproximator
+    //     ? this.quadraticBezierChainApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
+    //     : null;
+    // registerAttempt('quadraticChain', quadraticChainResult, 6);
+
+    const selectiveResult = this.selectiveCurveApproximator
+        ? this.selectiveCurveApproximator.approximate(
             domainPath,
             domainInfo,
-            this.approximatorSettings
-        );
-        registerAttempt('quadraticBSpline', quadraticBSplineResult, 5);
+            this.approximatorSettings?.selective || {}
+        )
+        : null;
+    registerAttempt('selectiveHybrid', selectiveResult, 7);
 
-        // const quadraticChainResult = this.quadraticBezierChainApproximator
-        //     ? this.quadraticBezierChainApproximator.approximate(domainPath, domainInfo, this.approximatorSettings)
-        //     : null;
-        // registerAttempt('quadraticChain', quadraticChainResult, 6);
+    const successfulAttempts = attempts.filter(entry => entry.approximation && entry.approximation.success);
 
-        const selectiveResult = this.selectiveCurveApproximator
-            ? this.selectiveCurveApproximator.approximate(
-                domainPath,
-                domainInfo,
-                this.approximatorSettings?.selective || {}
-            )
-            : null;
-        registerAttempt('selectiveHybrid', selectiveResult, 7);
+    let bestAttempt = null;
+    if (successfulAttempts.length > 0) {
+        successfulAttempts.sort((a, b) => {
+            if (a.priority !== b.priority) {
+                return a.priority - b.priority;
+            }
+            const errorA = Number.isFinite(a.error) ? a.error : Number.POSITIVE_INFINITY;
+            const errorB = Number.isFinite(b.error) ? b.error : Number.POSITIVE_INFINITY;
+            if (errorA !== errorB) {
+                return errorA - errorB;
+            }
+            return a.label.localeCompare(b.label);
+        });
+        bestAttempt = successfulAttempts[0];
+    }
 
-        const successfulAttempts = attempts.filter(entry => entry.approximation && entry.approximation.success);
+    const attemptDiagnostics = attempts.map(entry => ({
+        label: entry.label,
+        type: entry.approximation ? entry.approximation.type : null,
+        success: !!(entry.approximation && entry.approximation.success),
+        priority: entry.priority,
+        error: Number.isFinite(entry.error) ? entry.error : null
+    }));
 
-        let bestAttempt = null;
-        if (successfulAttempts.length > 0) {
-            successfulAttempts.sort((a, b) => {
-                if (a.priority !== b.priority) {
-                    return a.priority - b.priority;
-                }
-                const errorA = Number.isFinite(a.error) ? a.error : Number.POSITIVE_INFINITY;
-                const errorB = Number.isFinite(b.error) ? b.error : Number.POSITIVE_INFINITY;
-                if (errorA !== errorB) {
-                    return errorA - errorB;
-                }
-                return a.label.localeCompare(b.label);
+    if (bestAttempt) {
+        const approximation = bestAttempt.approximation;
+
+        if (!approximation.diagnostics) {
+            approximation.diagnostics = {};
+        }
+        approximation.diagnostics.selectedApproximator = bestAttempt.label;
+        approximation.diagnostics.approximatorPriority = bestAttempt.priority;
+        approximation.diagnostics.alternatives = attemptDiagnostics;
+        // Debug: which approximator was chosen for this stroke
+        try {
+            console.log(`[Approximator] selected: ${bestAttempt.label}`, {
+                priority: bestAttempt.priority,
+                error: bestAttempt.error,
+                diagnostics: approximation.diagnostics
             });
-            bestAttempt = successfulAttempts[0];
+        } catch (e) {
+            // ignore console errors in constrained environments
+        }
+        result.diagnostics = approximation.diagnostics;
+
+        // 曲線を追加
+        graphCurve = this.graphCalculator.addCurve(approximation.svgPath, {
+            id: id.toString(),
+            color: color,
+            width: size,
+            opacity: 1
+        });
+
+        // 曲線のタイプ
+        const type = approximation.type;
+
+        // LaTeX方程式を保存
+        latexEquations = approximation.latexEquations;
+        // Precompute RPN tokens for each equation where applicable
+        try {
+            if (Array.isArray(latexEquations)) {
+                latexEquations.forEach(eq => {
+                    if (eq && eq.formula && typeof eq.formula === 'string') {
+                        try {
+                            eq.rpn = toRPN(eq.formula);
+                        } catch (e) {
+                            eq.rpn = null;
+                        }
+                    }
+                });
+            }
+        } catch (e) {
+            // ignore any RPN computation errors
         }
 
-        const attemptDiagnostics = attempts.map(entry => ({
-            label: entry.label,
-            type: entry.approximation ? entry.approximation.type : null,
-            success: !!(entry.approximation && entry.approximation.success),
-            priority: entry.priority,
-            error: Number.isFinite(entry.error) ? entry.error : null
-        }));
+        // 節点座標を取得して保存
+        const knotPoints = Array.isArray(approximation.knots)
+            ? approximation.knots
+                .filter(knot => Array.isArray(knot) && knot.length >= 2)
+                .map(knot => ({ x: knot[0], y: knot[1] }))
+            : [];
 
-        if (bestAttempt) {
-            const approximation = bestAttempt.approximation;
+        const preKnots = approximation.preKnots || []; // 事前に計算されたノットを保存
 
-            if (!approximation.diagnostics) {
-                approximation.diagnostics = {};
+        const savedKnots = [];
+        knotPoints.forEach(knot => {
+            const point = this.graphCalculator.addPoint(graphCurve.id, knot.x, knot.y, {
+                // 節点のスタイルを変更する場合
+                //  color: color,
+                //  size: 12,
+                //  shape: 'hollowCircle',
+            });
+
+            if (point) {
+                savedKnots.push({ x: knot.x, y: knot.y });
+                // 曲線ごとの節点表示フラグを尊重して DOM を非表示にする
+                const c = this.curves[id];
+                if (c && c.showKnots === false && point.group && point.group.style) {
+                    point.group.style.display = 'none';
+                }
             }
-            approximation.diagnostics.selectedApproximator = bestAttempt.label;
-            approximation.diagnostics.approximatorPriority = bestAttempt.priority;
-            approximation.diagnostics.alternatives = attemptDiagnostics;
-            // Debug: which approximator was chosen for this stroke
-            try {
-                console.log(`[Approximator] selected: ${bestAttempt.label}`, {
-                    priority: bestAttempt.priority,
-                    error: bestAttempt.error,
-                    diagnostics: approximation.diagnostics
-                });
-            } catch (e) {
-                // ignore console errors in constrained environments
-            }
-            result.diagnostics = approximation.diagnostics;
+        });
 
-            // 曲線を追加
-            graphCurve = this.graphCalculator.addCurve(approximation.svgPath, {
+        // 曲線を追加（節点データも含めて）
+        this.addCurve({
+            id: id,
+            type: type,
+            path: d3.select(graphCurve.path),
+            color: color,
+            size: size,
+            graphCurve: graphCurve,
+            latexEquations: latexEquations,
+            approximatorSettings: approximatorSettings,
+            preKnots: preKnots,
+            minKnots: 2,
+            maxKnots: this.approximatorSettings.maxKnots,
+            originalPoints: domainPath,
+            approximationType: approximation.type,
+            approximationData: approximation.exportData || null,
+            approximationDiagnostics: approximation.diagnostics || null,
+            selectedApproximator: bestAttempt.label,
+            approximatorPriority: bestAttempt.priority
+        });
+
+        // 節点表示のデフォルトが false の場合、既に追加した点を非表示にする
+        if (approximatorSettings && approximatorSettings.showKnotsDefault === false) {
+            const c = this.curves[id];
+            if (c && this.graphCalculator) {
+                const gc = this.graphCalculator.getCurve(c.graphCurve?.id || c.graphCurve || id);
+                if (gc && Array.isArray(gc.points)) {
+                    gc.points.forEach(p => { if (p && p.group && p.group.style) p.group.style.display = 'none'; });
+                }
+            }
+        }
+
+        // 節点データを保存（placeholder戦略のため、追加されたIDで参照）
+        const curve = this.curves[id];
+        if (curve) {
+            curve.knotPoints = savedKnots;
+            curve.originalPoints = Array.isArray(domainPath) ? domainPath.slice() : curve.originalPoints;
+            curve.selectedApproximator = bestAttempt.label;
+            curve.approximatorPriority = bestAttempt.priority;
+            curve.approximationDiagnostics = approximation.diagnostics;
+            curve.approximationType = approximation.type;
+            curve.approximationData = approximation.exportData || null;
+        }
+
+        result.success = true;
+        result.message = (approximation.type || bestAttempt.label) + 'として近似しました';
+        result.curve = graphCurve;
+        return result;
+    }
+
+    // 単調増加でないが拡張モードの場合は特別な処理
+    if (useAdvancedMode) {
+        try {
+            // 通常の曲線として追加（将来的に特別な近似法を実装可能）
+            graphCurve = this.graphCalculator.addCurve(domainPath, {
                 id: id.toString(),
                 color: color,
                 width: size,
                 opacity: 1
             });
 
-            // 曲線のタイプ
-            const type = approximation.type;
-
-            // LaTeX方程式を保存
-            latexEquations = approximation.latexEquations;
-            // Precompute RPN tokens for each equation where applicable
-            try {
-                if (Array.isArray(latexEquations)) {
-                    latexEquations.forEach(eq => {
-                        if (eq && eq.formula && typeof eq.formula === 'string') {
-                            try {
-                                eq.rpn = toRPN(eq.formula);
-                            } catch (e) {
-                                eq.rpn = null;
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                // ignore any RPN computation errors
-            }
-
-            // 節点座標を取得して保存
-            const knotPoints = Array.isArray(approximation.knots)
-                ? approximation.knots
-                    .filter(knot => Array.isArray(knot) && knot.length >= 2)
-                    .map(knot => ({ x: knot[0], y: knot[1] }))
-                : [];
-
-            const preKnots = approximation.preKnots || []; // 事前に計算されたノットを保存
-
-            const savedKnots = [];
-            knotPoints.forEach(knot => {
-                const point = this.graphCalculator.addPoint(graphCurve.id, knot.x, knot.y, {
-                    // 節点のスタイルを変更する場合
-                    //  color: color,
-                    //  size: 12,
-                    //  shape: 'hollowCircle',
-                });
-
-                if (point) {
-                    savedKnots.push({ x: knot.x, y: knot.y });
-                    // 曲線ごとの節点表示フラグを尊重して DOM を非表示にする
-                    const c = this.curves[id];
-                    if (c && c.showKnots === false && point.group && point.group.style) {
-                        point.group.style.display = 'none';
-                    }
-                }
-            });
-
-            // 曲線を追加（節点データも含めて）
+            // 曲線を追加
             this.addCurve({
                 id: id,
-                type: type,
+                type: 'parametric',
                 path: d3.select(graphCurve.path),
                 color: color,
                 size: size,
                 graphCurve: graphCurve,
-                latexEquations: latexEquations,
+                latexEquations: [],
                 approximatorSettings: approximatorSettings,
-                preKnots: preKnots,
-                minKnots: 2,
-                maxKnots: this.approximatorSettings.maxKnots,
-                originalPoints: domainPath,
-                approximationType: approximation.type,
-                approximationData: approximation.exportData || null,
-                approximationDiagnostics: approximation.diagnostics || null,
-                selectedApproximator: bestAttempt.label,
-                approximatorPriority: bestAttempt.priority
+                originalPoints: domainPath
             });
-
-            // 節点表示のデフォルトが false の場合、既に追加した点を非表示にする
-            if (approximatorSettings && approximatorSettings.showKnotsDefault === false) {
-                const c = this.curves[id];
-                if (c && this.graphCalculator) {
-                    const gc = this.graphCalculator.getCurve(c.graphCurve?.id || c.graphCurve || id);
-                    if (gc && Array.isArray(gc.points)) {
-                        gc.points.forEach(p => { if (p && p.group && p.group.style) p.group.style.display = 'none'; });
-                    }
-                }
-            }
-
-            // 節点データを保存（placeholder戦略のため、追加されたIDで参照）
-            const curve = this.curves[id];
-            if (curve) {
-                curve.knotPoints = savedKnots;
-                curve.originalPoints = Array.isArray(domainPath) ? domainPath.slice() : curve.originalPoints;
-                curve.selectedApproximator = bestAttempt.label;
-                curve.approximatorPriority = bestAttempt.priority;
-                curve.approximationDiagnostics = approximation.diagnostics;
-                curve.approximationType = approximation.type;
-                curve.approximationData = approximation.exportData || null;
-            }
 
             result.success = true;
-            result.message = (approximation.type || bestAttempt.label) + 'として近似しました';
+            result.message = '拡張モードで曲線を追加しました（近似なし）';
             result.curve = graphCurve;
             return result;
+        } catch (error) {
+            result.message = '拡張モードでの曲線追加に失敗しました: ' + error.message;
+            return result;
+        }
+    }
+
+    // 単調増加で近似失敗、拡張モードでも近似失敗した場合
+    result.message = '近似処理に失敗しました: ';
+    result.diagnostics = {
+        selectedApproximator: null,
+        approximatorPriority: null,
+        alternatives: attemptDiagnostics
+    };
+
+    try {
+        if (this.curves[id] && (!this.curves[id].graphCurve || this.curves[id].type === 'unknown')) {
+            // null を代入して参照切断
+            this.curves[id] = null;
         }
 
-        // 単調増加でないが拡張モードの場合は特別な処理
-        if (useAdvancedMode) {
+        const elem = document.querySelector(`.curve-item[data-id="${id}"]`);
+        if (elem && elem.parentNode) elem.parentNode.removeChild(elem);
+    } catch (e) {
+        // UI がまだない場合などは無視
+    }
+
+    return result;
+}
+
+/**
+ * 二次曲線近似の節点数を調整するスライダーを作成
+ * @param {d3.Selection} container - スライダーを追加するコンテナ要素
+ * @param {number} curveId - 曲線ID
+ */
+createKnotCountSlider(container, curveId) {
+    const curve = this.curves[curveId];
+    if (!curve || !curve.graphCurve) return;
+
+    // スライダーのラッパー要素
+    const sliderWrapper = container.append('div')
+        .attr('class', 'knot-slider-wrapper')
+
+    // スライダーのラベル
+    const labelElement = sliderWrapper.append('span')
+        .attr('class', 'knot-slider-label')
+        .attr('data-i18n', 'curve.knot_slider.label')
+        .text('節点数:')
+        .node();  // DOMノードを取得
+
+    // 言語を適用
+    this.updateKnotCountLabel(labelElement);
+
+    // 現在の数（デフォルトは近似設定から取得）
+    const currentKnotCount = curve.knotCount || curve.latexEquations.length + 1 || this.approximatorSettings.maxKnots;
+    const minKnots = curve.minKnots || 2;
+    const maxKnots = curve.maxKnots || 10;
+
+    // 現在の値を表示
+    const valueDisplay = sliderWrapper.append('span')
+        .attr('class', 'knot-count-value')
+        .text(currentKnotCount);
+
+    // スライダー作成
+    const slider = sliderWrapper.append('input')
+        .attr('type', 'range')
+        .attr('class', 'knot-count-slider')
+        .attr('min', minKnots)
+        .attr('max', maxKnots)
+        .attr('step', 1)
+        .attr('value', currentKnotCount)
+        .attr('data-curve-id', curveId);
+
+
+    // 値変更時のハンドラ（即時表示は input で、確定は change で履歴に記録）
+    let timeout = null;
+    let oldValueForHistory = currentKnotCount;
+
+    // インタラクション開始時の古い値を保存
+    const node = slider.node();
+    if (node) {
+        node.addEventListener('pointerdown', () => { oldValueForHistory = Number(node.value); });
+        node.addEventListener('change', (ev) => {
+            const newValue = parseInt(ev.target.value);
+            // 履歴に記録（古い値と異なる場合）
             try {
-                // 通常の曲線として追加（将来的に特別な近似法を実装可能）
-                graphCurve = this.graphCalculator.addCurve(domainPath, {
-                    id: id.toString(),
-                    color: color,
-                    width: size,
-                    opacity: 1
-                });
-
-                // 曲線を追加
-                this.addCurve({
-                    id: id,
-                    type: 'parametric',
-                    path: d3.select(graphCurve.path),
-                    color: color,
-                    size: size,
-                    graphCurve: graphCurve,
-                    latexEquations: [],
-                    approximatorSettings: approximatorSettings,
-                    originalPoints: domainPath
-                });
-
-                result.success = true;
-                result.message = '拡張モードで曲線を追加しました（近似なし）';
-                result.curve = graphCurve;
-                return result;
-            } catch (error) {
-                result.message = '拡張モードでの曲線追加に失敗しました: ' + error.message;
-                return result;
-            }
-        }
-
-        // 単調増加で近似失敗、拡張モードでも近似失敗した場合
-        result.message = '近似処理に失敗しました: ';
-        result.diagnostics = {
-            selectedApproximator: null,
-            approximatorPriority: null,
-            alternatives: attemptDiagnostics
-        };
-
-        try {
-            if (this.curves[id] && (!this.curves[id].graphCurve || this.curves[id].type === 'unknown')) {
-                // null を代入して参照切断
-                this.curves[id] = null;
-            }
-
-            const elem = document.querySelector(`.curve-item[data-id="${id}"]`);
-            if (elem && elem.parentNode) elem.parentNode.removeChild(elem);
-        } catch (e) {
-            // UI がまだない場合などは無視
-        }
-
-        return result;
-    }
-
-    /**
-     * 二次曲線近似の節点数を調整するスライダーを作成
-     * @param {d3.Selection} container - スライダーを追加するコンテナ要素
-     * @param {number} curveId - 曲線ID
-     */
-    createKnotCountSlider(container, curveId) {
-        const curve = this.curves[curveId];
-        if (!curve || !curve.graphCurve) return;
-
-        // スライダーのラッパー要素
-        const sliderWrapper = container.append('div')
-            .attr('class', 'knot-slider-wrapper')
-
-        // スライダーのラベル
-        const labelElement = sliderWrapper.append('span')
-            .attr('class', 'knot-slider-label')
-            .attr('data-i18n', 'curve.knot_slider.label')
-            .text('節点数:')
-            .node();  // DOMノードを取得
-
-        // 言語を適用
-        this.updateKnotCountLabel(labelElement);
-
-        // 現在の数（デフォルトは近似設定から取得）
-        const currentKnotCount = curve.knotCount || curve.latexEquations.length + 1 || this.approximatorSettings.maxKnots;
-        const minKnots = curve.minKnots || 2;
-        const maxKnots = curve.maxKnots || 10;
-
-        // 現在の値を表示
-        const valueDisplay = sliderWrapper.append('span')
-            .attr('class', 'knot-count-value')
-            .text(currentKnotCount);
-
-        // スライダー作成
-        const slider = sliderWrapper.append('input')
-            .attr('type', 'range')
-            .attr('class', 'knot-count-slider')
-            .attr('min', minKnots)
-            .attr('max', maxKnots)
-            .attr('step', 1)
-            .attr('value', currentKnotCount)
-            .attr('data-curve-id', curveId);
-
-
-        // 値変更時のハンドラ（即時表示は input で、確定は change で履歴に記録）
-        let timeout = null;
-        let oldValueForHistory = currentKnotCount;
-
-        // インタラクション開始時の古い値を保存
-        const node = slider.node();
-        if (node) {
-            node.addEventListener('pointerdown', () => { oldValueForHistory = Number(node.value); });
-            node.addEventListener('change', (ev) => {
-                const newValue = parseInt(ev.target.value);
-                // 履歴に記録（古い値と異なる場合）
-                try {
-                    if (this.historyManager && oldValueForHistory !== newValue) {
-                        this.historyManager.addAction({
-                            type: 'knotCountChanged',
-                            id: curveId,
-                            oldValue: oldValueForHistory,
-                            newValue: newValue
-                        });
-                    }
-                } catch (e) {
-                    // ignore
+                if (this.historyManager && oldValueForHistory !== newValue) {
+                    this.historyManager.addAction({
+                        type: 'knotCountChanged',
+                        id: curveId,
+                        oldValue: oldValueForHistory,
+                        newValue: newValue
+                    });
                 }
+            } catch (e) {
+                // ignore
+            }
 
-                // 最終的な適用を行う
-                this.setKnotCount(curveId, newValue);
-            });
-        }
-
-        slider.on('input', (event) => {
-            const value = parseInt(event.target.value);
-            valueDisplay.text(value); // 即座に表示を更新
-
-            if (timeout) clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                // 部分更新（input のデバウンスによる近似再計算）
-                this.setKnotCount(curveId, value, /*suppressHistory*/ true);
-            }, 100);
+            // 最終的な適用を行う
+            this.setKnotCount(curveId, newValue);
         });
-
-        // スライダー値の初期設定
-        curve.knotCount = currentKnotCount;
     }
 
+    slider.on('input', (event) => {
+        const value = parseInt(event.target.value);
+        valueDisplay.text(value); // 即座に表示を更新
 
-    /**
-     * 指定したタイプの曲線近似の結果だけを取得するメソッド
-     * @param {string} type - 曲線のタイプ（'quadratic', 'linear', 'piecewiseLinear' など）
-     * @param {Array} points - 近似に使う点列 [[x1, y1], [x2, y2], ...]
-     * @param {Object} options - 近似用オプション（必要に応じて）
-     * @returns {Object} 近似結果オブジェクト（svgPath, latexEquations, knots, preKnots など）
-     */
-    getCurveApproximationResult(type, points, options = {}) {
-        if (!type || !points || !Array.isArray(points)) return null;
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            // 部分更新（input のデバウンスによる近似再計算）
+            this.setKnotCount(curveId, value, /*suppressHistory*/ true);
+        }, 100);
+    });
 
-        const domain = this.graphCalculator && typeof this.graphCalculator.getDomain === 'function'
-            ? this.graphCalculator.getDomain()
-            : null;
-        const mergedOptions = { ...this.approximatorSettings, ...options };
+    // スライダー値の初期設定
+    curve.knotCount = currentKnotCount;
+}
 
-        switch (type) {
-            case 'constant':
-            case 'vertical':
-            case 'linear':
-                // 一次関数近似
-                return this.linearApproximator.approximate(points, domain);
 
-            case 'quadratic':
-                // 二次Bスプライン近似
-                return this.quadraticApproximator.approximate(
-                    points,
-                    domain,
-                    mergedOptions
-                );
-            case 'piecewiseLinear':
-                // 折れ線近似
-                return this.piecewiseLinearApproximator.approximate(points, domain);
-            case 'singleQuadratic':
-                return this.singleQuadraticApproximator
-                    ? this.singleQuadraticApproximator.approximate(points, domain, mergedOptions)
-                    : null;
-            case 'singleCircle':
-                return this.singleCircleApproximator
-                    ? this.singleCircleApproximator.approximate(points, domain, mergedOptions)
-                    : null;
-            case 'quadraticChain':
-                return this.quadraticBezierChainApproximator
-                    ? this.quadraticBezierChainApproximator.approximate(points, domain, mergedOptions)
-                    : null;
-            case 'selectiveHybrid': {
-                const baseSelective = this.approximatorSettings?.selective || {};
-                const overrideSource = (options && typeof options === 'object')
-                    ? (options.selective && typeof options.selective === 'object' ? options.selective : options)
-                    : {};
-                const selectiveOverrides = {
-                    ...baseSelective,
-                    ...(overrideSource && typeof overrideSource === 'object' ? overrideSource : {})
-                };
-                return this.selectiveCurveApproximator
-                    ? this.selectiveCurveApproximator.approximate(points, domain, selectiveOverrides)
-                    : null;
-            }
-            default:
-                return null;
+/**
+ * 指定したタイプの曲線近似の結果だけを取得するメソッド
+ * @param {string} type - 曲線のタイプ（'quadratic', 'linear', 'piecewiseLinear' など）
+ * @param {Array} points - 近似に使う点列 [[x1, y1], [x2, y2], ...]
+ * @param {Object} options - 近似用オプション（必要に応じて）
+ * @returns {Object} 近似結果オブジェクト（svgPath, latexEquations, knots, preKnots など）
+ */
+getCurveApproximationResult(type, points, options = {}) {
+    if (!type || !points || !Array.isArray(points)) return null;
+
+    const domain = this.graphCalculator && typeof this.graphCalculator.getDomain === 'function'
+        ? this.graphCalculator.getDomain()
+        : null;
+    const mergedOptions = { ...this.approximatorSettings, ...options };
+
+    switch (type) {
+        case 'constant':
+        case 'vertical':
+        case 'linear':
+            // 一次関数近似
+            return this.linearApproximator.approximate(points, domain);
+
+        case 'quadratic':
+            // 二次Bスプライン近似
+            return this.quadraticApproximator.approximate(
+                points,
+                domain,
+                mergedOptions
+            );
+        case 'piecewiseLinear':
+            // 折れ線近似
+            return this.piecewiseLinearApproximator.approximate(points, domain);
+        case 'singleQuadratic':
+            return this.singleQuadraticApproximator
+                ? this.singleQuadraticApproximator.approximate(points, domain, mergedOptions)
+                : null;
+        case 'singleCircle':
+            return this.singleCircleApproximator
+                ? this.singleCircleApproximator.approximate(points, domain, mergedOptions)
+                : null;
+        case 'quadraticChain':
+            return this.quadraticBezierChainApproximator
+                ? this.quadraticBezierChainApproximator.approximate(points, domain, mergedOptions)
+                : null;
+        case 'selectiveHybrid': {
+            const baseSelective = this.approximatorSettings?.selective || {};
+            const overrideSource = (options && typeof options === 'object')
+                ? (options.selective && typeof options.selective === 'object' ? options.selective : options)
+                : {};
+            const selectiveOverrides = {
+                ...baseSelective,
+                ...(overrideSource && typeof overrideSource === 'object' ? overrideSource : {})
+            };
+            return this.selectiveCurveApproximator
+                ? this.selectiveCurveApproximator.approximate(points, domain, selectiveOverrides)
+                : null;
         }
+        default:
+            return null;
     }
+}
 
-    /**
-     * 指定した曲線IDの.equations-container内の数式DOMだけを更新する
-     * @param {number} curveId - 曲線ID
-     * @param {Array} latexEquations - LaTeX形式の数式配列（省略時はcurve.latexEquationsを使用）
-     */
-    updateEquationsContainer(curveId, latexEquations = null) {
-        const curve = this.curves[curveId];
-        if (!curve) return;
-        const equations = latexEquations || curve.latexEquations;
+/**
+ * 指定した曲線IDの.equations-container内の数式DOMだけを更新する
+ * @param {number} curveId - 曲線ID
+ * @param {Array} latexEquations - LaTeX形式の数式配列（省略時はcurve.latexEquationsを使用）
+ */
+updateEquationsContainer(curveId, latexEquations = null) {
+    const curve = this.curves[curveId];
+    if (!curve) return;
+    const equations = latexEquations || curve.latexEquations;
 
-        const curveItem = document.querySelector(`.curve-item[data-id="${curveId}"]`);
-        if (!curveItem) return;
-        const container = curveItem.querySelector('.equations-container');
-        if (!container) return;
+    const curveItem = document.querySelector(`.curve-item[data-id="${curveId}"]`);
+    if (!curveItem) return;
+    const container = curveItem.querySelector('.equations-container');
+    if (!container) return;
 
-        // 軽量更新: 既存DOMがあれば式のみ更新（DOM再構築しない）
-        if (equations && Array.isArray(equations) && equations.length > 0) {
-            const timeline = container.querySelector('.equations-timeline');
+    // 軽量更新: 既存DOMがあれば式のみ更新（DOM再構築しない）
+    if (equations && Array.isArray(equations) && equations.length > 0) {
+        const timeline = container.querySelector('.equations-timeline');
 
-            // 既存構造があり、式数が一致する場合は差分更新
-            const contents = timeline ? timeline.querySelectorAll(`.equation-content[data-curve-id="${curveId}"]`) : null;
-            if (timeline && contents && contents.length === equations.length) {
-                // KaTeX とイベントのみ更新（domain-marker は原則触らない）
-                for (let i = 0; i < equations.length; i++) {
-                    const eq = equations[i];
-                    if (!eq || (!eq.formula && !eq.latex) || !eq.domain) continue;
-                    const content = timeline.querySelector(`.equation-content[data-section-index="${i}"][data-curve-id="${curveId}"]`);
-                    if (!content) continue;
-                    const katexContainer = content.querySelector('.katex-display');
-                    if (katexContainer) {
-                        const displayFormula = eq.latex || eq.formula || '';
-                        try {
-                            katex.render(displayFormula, katexContainer, { throwOnError: false, displayMode: true });
-                        } catch (e) {
-                            katexContainer.textContent = displayFormula;
-                        }
+        // 既存構造があり、式数が一致する場合は差分更新
+        const contents = timeline ? timeline.querySelectorAll(`.equation-content[data-curve-id="${curveId}"]`) : null;
+        if (timeline && contents && contents.length === equations.length) {
+            // KaTeX とイベントのみ更新（domain-marker は原則触らない）
+            for (let i = 0; i < equations.length; i++) {
+                const eq = equations[i];
+                if (!eq || (!eq.formula && !eq.latex) || !eq.domain) continue;
+                const content = timeline.querySelector(`.equation-content[data-section-index="${i}"][data-curve-id="${curveId}"]`);
+                if (!content) continue;
+                const katexContainer = content.querySelector('.katex-display');
+                if (katexContainer) {
+                    const displayFormula = eq.latex || eq.formula || '';
+                    try {
+                        katex.render(displayFormula, katexContainer, { throwOnError: false, displayMode: true });
+                    } catch (e) {
+                        katexContainer.textContent = displayFormula;
                     }
-                    const copyButton = content.querySelector('.equation-copy-btn');
-                    if (copyButton) {
-                        copyButton.onclick = (event) => {
-                            event.stopPropagation();
-                            this.copyEquationToClipboard(eq, copyButton);
-                        };
-                    }
-                    // ハイライト更新
-                    content.onmouseenter = () => this.highlightFunction(curveId, i, eq);
-                    content.onmouseleave = () => this.unhighlightFunction();
                 }
+                const copyButton = content.querySelector('.equation-copy-btn');
+                if (copyButton) {
+                    copyButton.onclick = (event) => {
+                        event.stopPropagation();
+                        this.copyEquationToClipboard(eq, copyButton);
+                    };
+                }
+                // ハイライト更新
+                content.onmouseenter = () => this.highlightFunction(curveId, i, eq);
+                content.onmouseleave = () => this.unhighlightFunction();
+            }
 
-                // domain-marker は値が変わったときのみ innerHTML を更新（スタイル保持のため）
-                try {
-                    const markers = timeline.querySelectorAll('.domain-marker');
-                    const hasStart = equations[0] && equations[0].domain;
-                    const expected = hasStart ? (equations.length + 1) : 0;
-                    if (markers && markers.length === expected && hasStart) {
-                        const fmt = (v) => String(v).replace(/\.(00|0)$/, '');
-                        const startText = fmt(equations[0].domain.start);
-                        if (markers[0].innerText !== startText) {
-                            // スタイルを残すためinnerHTMLで更新
-                            markers[0].innerHTML = startText;
-                        }
-                        for (let i = 0; i < equations.length; i++) {
-                            const endText = fmt(equations[i].domain.end);
-                            const idx = i + 1;
-                            if (markers[idx] && markers[idx].innerText !== endText) {
-                                markers[idx].innerHTML = endText;
-                            }
+            // domain-marker は値が変わったときのみ innerHTML を更新（スタイル保持のため）
+            try {
+                const markers = timeline.querySelectorAll('.domain-marker');
+                const hasStart = equations[0] && equations[0].domain;
+                const expected = hasStart ? (equations.length + 1) : 0;
+                if (markers && markers.length === expected && hasStart) {
+                    const fmt = (v) => String(v).replace(/\.(00|0)$/, '');
+                    const startText = fmt(equations[0].domain.start);
+                    if (markers[0].innerText !== startText) {
+                        // スタイルを残すためinnerHTMLで更新
+                        markers[0].innerHTML = startText;
+                    }
+                    for (let i = 0; i < equations.length; i++) {
+                        const endText = fmt(equations[i].domain.end);
+                        const idx = i + 1;
+                        if (markers[idx] && markers[idx].innerText !== endText) {
+                            markers[idx].innerHTML = endText;
                         }
                     }
-                } catch (_) { /* noop */ }
+                }
+            } catch (_) { /* noop */ }
 
-                return; // 差分更新完了
-            }
+            return; // 差分更新完了
+        }
 
-            // 構造が無い、または一致しない場合は最小限の再構築
-            let html = '<div class="equations-timeline">';
-            if (typeof equations[0] === 'object' && equations[0].domain) {
-                html += `<div class=\"domain-marker\">${equations[0].domain.start.replace(/\.(00|0)$/, '')}</div>`;
-            }
-            equations.forEach((eq, i) => {
-                if (typeof eq === 'object' && (eq.formula || eq.latex) && eq.domain) {
-                    html += `
+        // 構造が無い、または一致しない場合は最小限の再構築
+        let html = '<div class="equations-timeline">';
+        if (typeof equations[0] === 'object' && equations[0].domain) {
+            html += `<div class=\"domain-marker\">${equations[0].domain.start.replace(/\.(00|0)$/, '')}</div>`;
+        }
+        equations.forEach((eq, i) => {
+            if (typeof eq === 'object' && (eq.formula || eq.latex) && eq.domain) {
+                html += `
             <div class=\"equation-item\" data-section-index=\"${i}\" data-curve-id=\"${curveId}\"> 
               <div class=\"equation-content\" data-section-index=\"${i}\" data-curve-id=\"${curveId}\"> 
                 <button class=\"equation-copy-btn\" title=\"数式をコピー\"> 
@@ -2561,142 +2599,142 @@ export class CurveManager {
               </div> 
             </div> 
             <div class=\"domain-marker\">${eq.domain.end.replace(/\.(00|0)$/, '')}</div>`;
-                }
-            });
-            html += '</div>';
-            container.innerHTML = html;
-
-            // KaTeX描画とイベント再設定
-            equations.forEach((eq, i) => {
-                if (typeof eq === 'object' && eq.formula && eq.domain) {
-                    const equationContent = container.querySelector(`.equation-content[data-section-index=\"${i}\"][data-curve-id=\"${curveId}\"]`);
-                    const katexDisplay = equationContent && equationContent.querySelector('.katex-display');
-                    if (katexDisplay) {
-                        const displayFormula = eq.latex || eq.formula || '';
-                        try {
-                            katex.render(displayFormula, katexDisplay, { throwOnError: false, displayMode: true });
-                        } catch (e) {
-                            katexDisplay.textContent = displayFormula;
-                        }
-                    }
-                    const copyButton = equationContent && equationContent.querySelector('.equation-copy-btn');
-                    if (copyButton) {
-                        copyButton.onclick = (event) => {
-                            event.stopPropagation();
-                            this.copyEquationToClipboard(eq, copyButton);
-                        };
-                    }
-                    if (equationContent) {
-                        equationContent.onmouseenter = () => this.highlightFunction(curveId, i, eq);
-                        equationContent.onmouseleave = () => this.unhighlightFunction();
-                    }
-                }
-            });
-        } else {
-            container.innerHTML = '<p class="no-equation">関数式は利用できません</p>';
-        }
-    }
-
-    updateKnotCountLabel(element) {
-        if (this.languageManager && element) {
-            this.languageManager.updateSpecificElement(element);
-        }
-    }
-
-    /**
-     * 汎用的な曲線オプションボタンを作成
-     * @param {d3.Selection} container - ボタンを追加するコンテナ要素
-     * @param {number} curveId - 曲線ID
-     * @param {Object} options - ボタン設定オプション
-     * @param {string} options.iconName - Google Iconsのアイコン名
-     * @param {boolean} options.initialActive - 初期状態でアクティブかどうか
-     * @param {string} options.title - ボタンのツールチップテキスト
-     * @param {Function} options.onClick - クリック時の処理関数 (curveId, isActive, buttonElement) => void
-     * @param {string} [options.className] - 追加のCSSクラス名
-     * @returns {d3.Selection} 作成されたボタン要素
-     */
-    createCurveOptionButton(container, curveId, options) {
-        const {
-            iconName,
-            initialActive = false,
-            title = '',
-            onClick,
-            className = ''
-        } = options;
-
-        const button = container.append('button')
-            .attr('class', `curve-option-btn ${className}`)
-            .attr('title', title)
-            .attr('data-id', curveId)
-            .html(`<i class="material-symbols-rounded">${iconName}</i>`);
-
-        // 初期状態の設定
-        if (initialActive) {
-            button.classed('active', true);
-        }
-
-        // クリックイベントの設定
-        button.on('click', (event) => {
-            event.stopPropagation();
-            const btn = event.currentTarget;
-            const wasActive = btn.classList.contains('active');
-            const isActive = !wasActive;
-
-            btn.classList.toggle('active');
-
-            if (onClick && typeof onClick === 'function') {
-                onClick(curveId, isActive, btn);
             }
         });
+        html += '</div>';
+        container.innerHTML = html;
 
-        return button;
+        // KaTeX描画とイベント再設定
+        equations.forEach((eq, i) => {
+            if (typeof eq === 'object' && eq.formula && eq.domain) {
+                const equationContent = container.querySelector(`.equation-content[data-section-index=\"${i}\"][data-curve-id=\"${curveId}\"]`);
+                const katexDisplay = equationContent && equationContent.querySelector('.katex-display');
+                if (katexDisplay) {
+                    const displayFormula = eq.latex || eq.formula || '';
+                    try {
+                        katex.render(displayFormula, katexDisplay, { throwOnError: false, displayMode: true });
+                    } catch (e) {
+                        katexDisplay.textContent = displayFormula;
+                    }
+                }
+                const copyButton = equationContent && equationContent.querySelector('.equation-copy-btn');
+                if (copyButton) {
+                    copyButton.onclick = (event) => {
+                        event.stopPropagation();
+                        this.copyEquationToClipboard(eq, copyButton);
+                    };
+                }
+                if (equationContent) {
+                    equationContent.onmouseenter = () => this.highlightFunction(curveId, i, eq);
+                    equationContent.onmouseleave = () => this.unhighlightFunction();
+                }
+            }
+        });
+    } else {
+        container.innerHTML = '<p class="no-equation">関数式は利用できません</p>';
+    }
+}
+
+updateKnotCountLabel(element) {
+    if (this.languageManager && element) {
+        this.languageManager.updateSpecificElement(element);
+    }
+}
+
+/**
+ * 汎用的な曲線オプションボタンを作成
+ * @param {d3.Selection} container - ボタンを追加するコンテナ要素
+ * @param {number} curveId - 曲線ID
+ * @param {Object} options - ボタン設定オプション
+ * @param {string} options.iconName - Google Iconsのアイコン名
+ * @param {boolean} options.initialActive - 初期状態でアクティブかどうか
+ * @param {string} options.title - ボタンのツールチップテキスト
+ * @param {Function} options.onClick - クリック時の処理関数 (curveId, isActive, buttonElement) => void
+ * @param {string} [options.className] - 追加のCSSクラス名
+ * @returns {d3.Selection} 作成されたボタン要素
+ */
+createCurveOptionButton(container, curveId, options) {
+    const {
+        iconName,
+        initialActive = false,
+        title = '',
+        onClick,
+        className = ''
+    } = options;
+
+    const button = container.append('button')
+        .attr('class', `curve-option-btn ${className}`)
+        .attr('title', title)
+        .attr('data-id', curveId)
+        .html(`<i class="material-symbols-rounded">${iconName}</i>`);
+
+    // 初期状態の設定
+    if (initialActive) {
+        button.classed('active', true);
     }
 
-    /**
-     * SVGアイコンを返す（typeで切り替え）
-     * @param {string} iconType - アイコンの種類
-     * @param {string} color - 線の色（例: 'white'）
-     * @returns {string} SVGタグ文字列
-     */
-    getColorIconSVG(iconType = 'linear', color = 'white') {
-        switch (iconType) {
-            case 'piecewiseLinear':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+    // クリックイベントの設定
+    button.on('click', (event) => {
+        event.stopPropagation();
+        const btn = event.currentTarget;
+        const wasActive = btn.classList.contains('active');
+        const isActive = !wasActive;
+
+        btn.classList.toggle('active');
+
+        if (onClick && typeof onClick === 'function') {
+            onClick(curveId, isActive, btn);
+        }
+    });
+
+    return button;
+}
+
+/**
+ * SVGアイコンを返す（typeで切り替え）
+ * @param {string} iconType - アイコンの種類
+ * @param {string} color - 線の色（例: 'white'）
+ * @returns {string} SVGタグ文字列
+ */
+getColorIconSVG(iconType = 'linear', color = 'white') {
+    switch (iconType) {
+        case 'piecewiseLinear':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <polyline points="4,14 7,8 11,12 15,7" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>`;
-            case 'quadratic':
-            case 'quadraticBezier':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'quadratic':
+        case 'quadraticBezier':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <path d="M4,13 Q10,4 16,13" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
                 </svg>`;
-            case 'singleQuadratic':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'singleQuadratic':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <path d="M3,15 Q10,3 17,15" fill="none" stroke="${color}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
                     <circle cx="10" cy="5" r="1.5" fill="none" stroke="${color}" stroke-width="1.4"/>
                 </svg>`;
-            case 'quadraticChain':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'quadraticChain':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <path d="M2,14 Q6.5,5 10,10" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M10,10 Q13.5,17 18,7" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>`;
-            case 'singleCircle':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'singleCircle':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <circle cx="10" cy="10" r="5.5" fill="none" stroke="${color}" stroke-width="2.4"/>
                 </svg>`;
-            case 'selectiveHybrid':
-            case 'mixedHybrid':
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'selectiveHybrid':
+        case 'mixedHybrid':
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <polyline points="3,15 7,9.5 10,12" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M10,12 Q13,5.5 17,8" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>`;
-            case 'linear':
-            case 'constant':
-            case 'vertical':
-            default:
-                return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
+        case 'linear':
+        case 'constant':
+        case 'vertical':
+        default:
+            return `<svg viewBox="0 0 20 20" width="100%" height="100%" style="pointer-events:none;">
                     <line x1="6" y1="14" x2="14" y2="6" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
                 </svg>`;
-        }
     }
+}
 
 }
