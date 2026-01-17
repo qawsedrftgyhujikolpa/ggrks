@@ -3,10 +3,11 @@
     max-height: 200px;
     padding: 4px;
     overflow-y: auto;
-    /* background: var(--panel-color); */
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
 }
 
 #language-panel .settings-body {
@@ -45,8 +46,27 @@
 }
 
 .language-option.active {
-    background-color: var(--primary-color-light);
+    background-color: var(--hover-background);
     color: var(--primary-color);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .language-option.active {
+    color: var(--primary-color) !important;
+}
+
+[data-theme="dark"] body.grapen-advanced-mode .language-option.active {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] body.grapen-advanced-mode .language-option {
+    color: #cccccc;
+}
+
+[data-theme="dark"] body.grapen-advanced-mode .language-option:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .language-option .check-icon {
