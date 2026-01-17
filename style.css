@@ -21,6 +21,13 @@
     --disabled-text: #6c757d;
     --primary-color: #007bff;
     --primary-hover-color: #0056b3;
+
+    /* Approximator & Interaction */
+    --approx-bg: var(--panel-color);
+    --approx-tab-bg: #fff;
+    --approx-frame-border: rgba(0, 0, 0, 0.1);
+    --hover-background: rgba(0, 0, 0, 0.05);
+    --active-background: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] {
