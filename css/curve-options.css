@@ -75,9 +75,11 @@
     left: 0;
     width: 150%;
     height: 1px;
-    background-color: black;
+    height: 1px;
+    background-color: var(--text-color);
     transform-origin: 0 100%;
     transform: rotate(-45deg);
+    opacity: 0.5;
 }
 
 .curve-option-btn.disabled::after {
@@ -87,9 +89,12 @@
     left: 0;
     width: 150%;
     height: 1px;
-    background-color: black;
+    width: 150%;
+    height: 1px;
+    background-color: var(--text-color);
     transform-origin: 0 0;
     transform: rotate(45deg);
+    opacity: 0.5;
 }
 
 /* 黒枠と斜線のスタイルを追加 */

@@ -366,7 +366,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #fff;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--modal-bg);
+    color: var(--text-color);
     padding: 24px;
     border-radius: 12px;
     width: 90%;
@@ -381,14 +384,15 @@
 }
 
 .modal-title {
-    color: #333;
+    color: var(--text-color);
     font-size: 1.2em;
     margin-bottom: 16px;
     font-weight: bold;
 }
 
 .modal-message {
-    color: #666;
+    color: var(--text-color);
+    opacity: 0.8;
     margin-bottom: 24px;
     line-height: 1.5;
 }
@@ -409,75 +413,76 @@
 }
 
 .modal-btn.cancel {
-    background-color: #f5f5f5;
-    color: #333;
-}
-
-.modal-btn.cancel:hover {
-    background-color: #e8e8e8;
-}
-
-.modal-btn.delete {
-    background-color: #ff3b30;
-    color: white;
-}
-
-.modal-btn.delete:hover {
-    background-color: #ff2419;
-}
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 2002;
-    display: none;
-}
-
-.modal-overlay.open {
-    display: block;
-}
-
-.cache-notice {
-    padding: 14px 20px;
-    text-align: center;
-    color: white;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.cache-notice small {
-    opacity: 0.9;
-}
-
-.graph-hash {
-    color: #bbb;
-    text-decoration: none;
-    font-size: 0.95em;
-}
-
-.graph-block-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-}
-
-.graph-block-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-}
-
-@media (max-width: 610px) {
-    .menu-graph-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .modal-btn.cancel {
+        background-color: var(--disabled-background);
+        color: var(--text-color);
     }
 
-    .graph-thumb {
-        aspect-ratio: 1 / 1;
-        height: auto;
+    .modal-btn.cancel:hover {
+        background-color: #e8e8e8;
     }
-}
+
+    .modal-btn.delete {
+        background-color: #ff3b30;
+        color: white;
+    }
+
+    .modal-btn.delete:hover {
+        background-color: #ff2419;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2002;
+        display: none;
+    }
+
+    .modal-overlay.open {
+        display: block;
+    }
+
+    .cache-notice {
+        padding: 14px 20px;
+        text-align: center;
+        color: white;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .cache-notice small {
+        opacity: 0.9;
+    }
+
+    .graph-hash {
+        color: #bbb;
+        text-decoration: none;
+        font-size: 0.95em;
+    }
+
+    .graph-block-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .graph-block-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    @media (max-width: 610px) {
+        .menu-graph-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .graph-thumb {
+            aspect-ratio: 1 / 1;
+            height: auto;
+        }
+    }
