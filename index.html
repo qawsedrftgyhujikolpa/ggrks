@@ -90,6 +90,9 @@
             <button id="settings" class="header-button" title="設定" data-i18n="header.settings">
                 <i class="material-symbols-rounded">build</i>
             </button>
+            <button id="theme-toggle" class="header-button" title="ダークモード切替" data-i18n="header.theme">
+                <i class="material-symbols-rounded">dark_mode</i>
+            </button>
             <button id="language-selector" class="header-button" title="Language">
                 <i class="material-symbols-rounded">language</i>
             </button>
@@ -126,9 +129,11 @@
                 </div>
                 <div class="sidebar-tabs" role="tablist" aria-label="サイドバー切替">
                     <button type="button" id="sidebar-tab-curves" class="tab-btn" role="tab" data-tab="curves"
-                        aria-controls="curve-list" aria-selected="true" tabindex="0" data-i18n="sidebar.tab.curves">数式</button>
+                        aria-controls="curve-list" aria-selected="true" tabindex="0"
+                        data-i18n="sidebar.tab.curves">数式</button>
                     <button type="button" id="sidebar-tab-color" class="tab-btn" role="tab" data-tab="color"
-                        aria-controls="color-picker-panel" aria-selected="false" tabindex="-1" data-i18n="sidebar.tab.color">色</button>
+                        aria-controls="color-picker-panel" aria-selected="false" tabindex="-1"
+                        data-i18n="sidebar.tab.color">色</button>
                 </div>
             </div>
             <div id="curve-list" data-role="sidebar-tab" data-tab="curves" role="tabpanel" aria-hidden="false"
@@ -139,7 +144,7 @@
         <div id="canvas-container" class="panel">
             <div id="graph-container"></div>
             <div id="curve-approx-root" class="curve-approx-root" aria-hidden="true"></div>
-            
+
 
             <div id="canvas-toolbar" class="toolbar-container">
                 <button id="cursor-tool" class="tool-button" title="カーソル" data-i18n="tools.cursor">

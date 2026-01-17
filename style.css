@@ -7,6 +7,34 @@
     --border-color: #e0e0e0;
     --border-dots: #666;
     --text-color: #333;
+    --header-bg: #fff;
+    --icon-color: #333;
+    --card-bg: #fff;
+    --modal-bg: #fff;
+    --input-bg: #fff;
+    --input-border: #ccc;
+}
+
+[data-theme="dark"] {
+    --primary-blue: #6eb5ff;
+    /* より明るい青 */
+    --hover-blue: #3d8bfd;
+    --background: #121212;
+    /* より深い黒 */
+    --sidebar-bg: #1e1e1e;
+    /* サイドバーとの区別を明確に */
+    --border-color: #444;
+    /* ボーダーを少し見やすく */
+    --border-dots: #888;
+    --text-color: #ffffff;
+    /* 完全な白にしてコントラスト確保 */
+    --header-bg: #1e1e1e;
+    --icon-color: #ffffff;
+    --card-bg: #2d2d2d;
+    --modal-bg: #2d2d2d;
+    --input-bg: #333333;
+    --input-border: #555555;
+    color-scheme: dark;
 }
 
 body {
@@ -113,16 +141,22 @@ body {
 }
 
 /* モバイル（タッチ端末）ではズームイン／ズームアウトを非表示にする */
-@media (hover: none), (pointer: coarse), (max-width: 600px) {
+@media (hover: none),
+(pointer: coarse),
+(max-width: 600px) {
+
     .canvas-toolbar-zoom #zoom-in-button,
     .canvas-toolbar-zoom #zoom-out-button {
         display: none;
     }
+
     .canvas-toolbar-zoom,
     .canvas-toolbar-home {
         right: 8px;
-        bottom: 12px; /* モバイルではホームを右下に固定 */
+        bottom: 12px;
+        /* モバイルではホームを右下に固定 */
     }
+
     .canvas-toolbar-zoom {
         right: 8px;
     }
@@ -161,13 +195,14 @@ body {
     border: none;
     background: transparent;
     border-radius: 6px;
-    color: #9aa0a6;
+    color: var(--border-dots);
+    /* #9aa0a6 -> Variable */
     cursor: pointer;
     transition: color 140ms ease, background-color 140ms ease;
 }
 
 .sidebar-tabs .tab-btn:hover {
-    background: rgba(0,0,0,0.03);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .sidebar-tabs .tab-btn.active,
@@ -215,7 +250,7 @@ body {
     z-index: 0;
 }
 
-#sidebar > * {
+#sidebar>* {
     position: relative;
     z-index: 1;
 }
@@ -468,7 +503,7 @@ tool-button.active:hover {
 }
 
 .sidebar-tabs .tab-btn:focus-visible {
-    outline: 2px solid rgba(0,0,0,0.06);
+    outline: 2px solid rgba(0, 0, 0, 0.06);
     outline-offset: 2px;
 }
 
@@ -489,7 +524,8 @@ tool-button.active:hover {
 
 /* 無効状態の矢印ボタン - カーソルプロパティを削除 */
 .history-buttons i.disabled {
-    color: #ccc;
+    color: var(--border-color);
+    /* #ccc -> Variable */
     pointer-events: none;
 }
 
@@ -673,7 +709,7 @@ tool-button.active:hover {
         flex: none;
     }
 }
- 
+
 /* カラーピッカーのヘッダースタイル */
 
 .color-picker-header {
@@ -721,6 +757,7 @@ tool-button.active:hover {
     max-height: 1000px;
     transition: max-height 0.18s ease, opacity 0.18s ease, padding 0.18s ease;
 }
+
 .color-picker-panel.collapsed .color-picker-body {
     max-height: 0;
     opacity: 0;
@@ -729,11 +766,12 @@ tool-button.active:hover {
     overflow: hidden;
 }
 
-.color-picker-panel.collapsed .color-picker-body > * {
+.color-picker-panel.collapsed .color-picker-body>* {
     pointer-events: none;
 }
 
-@media (hover: none), (pointer: coarse) {
+@media (hover: none),
+(pointer: coarse) {
     .color-picker-panel .details-dropdown.color-picker-close {
         display: none;
     }
@@ -911,7 +949,7 @@ tool-button.active:hover {
     height: 16px;
     border-radius: 50%;
     border: 3px solid #fff;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 6px rgba(0, 0, 0, 0.3);
     transform: translate(-50%, -50%);
     cursor: pointer;
     pointer-events: none;
@@ -941,7 +979,7 @@ tool-button.active:hover {
     height: 14px;
     border: 3px solid #fff;
     border-radius: 3px;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.8), 0 0 4px rgba(0, 0, 0, 0.3);
     transform: translate(-50%, -50%);
     cursor: pointer;
     pointer-events: none;
@@ -1263,7 +1301,7 @@ tool-button.active:hover {
     border: none;
     font-size: 22px;
     cursor: pointer;
-    color: #555;
+    color: var(--icon-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1274,7 +1312,7 @@ tool-button.active:hover {
 .settings-group h4 {
     margin-top: 0;
     margin-bottom: 10px;
-    color: #333;
+    color: var(--text-color);
 }
 
 .settings-checkbox {
@@ -1304,11 +1342,12 @@ tool-button.active:hover {
 
 .header {
     height: 46px;
-    background-color: #333;
+    background-color: var(--header-bg);
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
 }
 
 .header-logo {
@@ -1319,6 +1358,12 @@ tool-button.active:hover {
 
 .header-logo svg {
     height: 40px;
+    /* Light mode: default black (no filter needed if SVG is black), Dark mode: invert to white */
+    filter: none;
+    transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] .header-logo svg {
     filter: invert(1);
 }
 
@@ -1338,7 +1383,7 @@ tool-button.active:hover {
     background-color: transparent;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
-    color: white;
+    color: var(--icon-color);
     margin: 0 5px;
 }
 
@@ -1391,7 +1436,7 @@ tool-button.active:hover {
 .settings-header span {
     font-weight: bold;
     font-size: 13px;
-    color: #333;
+    color: var(--text-color);
 }
 
 .color-picker-header i,
@@ -1427,7 +1472,7 @@ tool-button.active:hover {
 }
 
 .tutorial-panel {
-    background: white;
+    background: var(--card-bg);
     margin: 15px 15px 75px 15px;
     padding: 20px;
     border-radius: 12px;
@@ -1445,7 +1490,8 @@ tool-button.active:hover {
     background: none;
     font-size: 20px;
     line-height: 1;
-    color: #666;
+    color: var(--border-dots);
+    /* #666 -> Variable */
     cursor: pointer;
     padding: 0;
     display: flex;
@@ -1571,9 +1617,17 @@ tool-button.active:hover {
     background: transparent;
 }
 
-.size-slider-icon.size-slider-icon-min { order: 0; }
-.size-slider-container { order: 1; }
-.size-slider-icon.size-slider-icon-max { order: 2; }
+.size-slider-icon.size-slider-icon-min {
+    order: 0;
+}
+
+.size-slider-container {
+    order: 1;
+}
+
+.size-slider-icon.size-slider-icon-max {
+    order: 2;
+}
 
 .size-slider-container {
     flex: 1 1 auto;
@@ -1983,13 +2037,16 @@ tool-button.active:hover {
     .header-logo {
         display: none;
     }
+
     #header-buttons-right {
         display: flex;
     }
-    #header-buttons-right > *:not(#language-selector) {
+
+    #header-buttons-right>*:not(#language-selector) {
         display: none !important;
     }
-    #header-buttons-right > #language-selector {
+
+    #header-buttons-right>#language-selector {
         display: flex !important;
     }
 }
@@ -2332,7 +2389,7 @@ tool-button.active:hover {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
 }
 

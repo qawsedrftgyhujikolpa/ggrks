@@ -88,6 +88,9 @@ export class UIManager {
 
         // モバイル向けサイドバータブのセットアップ
         this.setupSidebarTabs();
+
+        // テーマの初期化
+        this.setupTheme();
     }
 
     /**
@@ -1415,6 +1418,45 @@ export class UIManager {
         } finally {
             document.removeEventListener('copy', handleCopy);
             document.body.removeChild(tempTextarea);
+        }
+    }
+
+    setupTheme() {
+        // テーマ切り替えボタン
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        // 保存されたテーマまたはシステム設定を取得
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // 初期テーマ設定
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            if (themeToggleBtn) {
+                themeToggleBtn.querySelector('i').textContent = 'light_mode';
+                themeToggleBtn.setAttribute('title', 'ライトモード切替');
+            }
+        }
+
+        // イベントリスナー
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+
+                // アイコン更新
+                const icon = themeToggleBtn.querySelector('i');
+                if (newTheme === 'dark') {
+                    icon.textContent = 'light_mode';
+                    themeToggleBtn.setAttribute('title', 'ライトモード切替');
+                } else {
+                    icon.textContent = 'dark_mode';
+                    themeToggleBtn.setAttribute('title', 'ダークモード切替');
+                }
+            });
         }
     }
 }
