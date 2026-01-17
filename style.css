@@ -59,6 +59,13 @@
     --primary-color: #6eb5ff;
     --primary-hover-color: #3d8bfd;
 
+    /* Approximator & Interaction Dark */
+    --approx-bg: var(--panel-color);
+    --approx-tab-bg: var(--input-bg);
+    --approx-frame-border: rgba(255, 255, 255, 0.1);
+    --hover-background: rgba(255, 255, 255, 0.1);
+    --active-background: rgba(255, 255, 255, 0.2);
+
     color-scheme: dark;
 }
 
@@ -2450,4 +2457,19 @@ tool-button.active:hover {
 
 .new-feature-modal.open {
     display: block;
+}
+/* Force dark mode for color picker if not applying */
+#color-picker-panel {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color);
+}
+
+.color-picker-header h3 {
+    color: var(--text-color) !important;
+}
+
+/* Fix sidebar background just in case */
+#sidebar {
+    background-color: var(--sidebar-bg) !important;
 }
