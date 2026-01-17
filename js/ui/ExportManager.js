@@ -3,6 +3,7 @@
  * グラフの出力、保存機能を管理
  */
 import { saveToPNG, saveToSVG, saveToJSON } from '../graph/GraphSaveUtils.js';
+import { DesmosIO } from '../io/DesmosIO.js';
 
 export class ExportManager {
     constructor(graphCalculator, settingsManager = null) {
@@ -64,7 +65,13 @@ export class ExportManager {
           <div class="settings-item export-item">
             <button id="export-json-btn" class="export-btn">
               <i class="material-symbols-rounded">data_object</i>
-              <span data-i18n="export_panel.json">JSON</span>
+              <span data-i18n="export_panel.json">JSON (GraPen)</span>
+            </button>
+          </div>
+          <div class="settings-item export-item">
+            <button id="export-desmos-btn" class="export-btn">
+              <i class="material-symbols-rounded">function</i>
+              <span data-i18n="export_panel.desmos">Desmos JSON</span>
             </button>
           </div>
         </div>
@@ -217,6 +224,28 @@ export class ExportManager {
                 this.hidePanel();
             });
         }
+
+        // Desmos JSON出力ボタン
+        const desmosBtn = document.getElementById('export-desmos-btn');
+        if (desmosBtn) {
+            desmosBtn.addEventListener('click', () => {
+                // CurveManagerの曲線情報を取得
+                let curveData = null;
+                if (this.settingsManager && this.settingsManager.curveManager) {
+                    curveData = this.settingsManager.curveManager.curves;
+                }
+
+                if (curveData) {
+                    const desmosData = DesmosIO.exportToDesmosJSON(curveData);
+                    DesmosIO.downloadJSON(desmosData, 'grapen_desmos.json');
+                    console.log('Desmos JSONを保存しました');
+                } else {
+                    console.error('曲線データが見つかりません');
+                }
+                this.hidePanel();
+            });
+        }
+
 
         // パネル外をクリックした時に閉じる
         document.addEventListener('click', (e) => {
